@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <ctime>
 
 using namespace std;
 
@@ -29,6 +30,7 @@ int create_ids_error() {
 // Generates or does not generate an erasure error for a line in the given fasta file based on the probability of era_error
 bool create_era_error() {
     double r = double(rand()) / RAND_MAX;
+    cout << r << endl;
     if (r < era_error) {
         return true;
     }
@@ -66,25 +68,26 @@ string random_string() {
  
 // Can pass in 0 or 3 parameters as doubles from 0 to 1 for error probabilities (other than the program name)
 int main() {
-    cout << "Enter in the name of the input fasta file. Ex. for \"dog.fasta\" enter in \"dog\"" << endl;
+    srand(time(NULL)); // generate a seed for the random function
+    cout << "Enter in the name of the input fasta file. Ex. \"dog.fasta\": ";
     string file;
+    cin >> file;
+    cin.get(); // not entirely sure why I need this line. Some weird C++ I/O thing
+    cout << "Enter in 3 doubles from 0 to 1 for respective IDS error probabilites, or press enter to use default error values of 0.02: " << endl;
     if (cin.get() != '\n') {
-        cin >> file;
-    }
-    cout << "Enter in 3 doubles from 0 to 1 for IDS error probabilites, or press enter to use default error values of 0.02: ";
-    if (cin.get() != '\n') {
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < 3; i++) {
             cin >> err_prob[i];
         }
     }
-    cout << endl;
-    cout << "Enter in 1 double from 0 to 1 for erasure error probability, or press enter to use a default value of 0.001";
+    cin.get();
+    cout << "Enter in 1 double from 0 to 1 for erasure error probability, or press enter to use a default value of 0.001: " << endl;
     if (cin.get() != '\n') {
         cin >> era_error;
+        cin.get();
     }
     cout << endl;
 
-    ifstream input(argv[1]); // input stream. default parameter is ios::in
+    ifstream input(file); // input stream. default parameter is ios::in
     ofstream output("output.fasta"); // output stream. default parameter is ios::out
     string line;
     while (getline(input, line)) {
