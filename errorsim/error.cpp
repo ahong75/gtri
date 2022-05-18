@@ -24,7 +24,7 @@ int create_error() {
     return 3;
 }
 
-// Takes in an input DNA string and returns a DNA string with insertion / deletion / substitution errors
+// Takes in an input DNA string and returns a DNA string with possible insertion / deletion / substitution errors
 string modify(string seq) {
     string nseq; // uses a different string as output, so it is not an in-place algorithm
     int len = seq.length();
@@ -49,9 +49,10 @@ string random_string() {
     }
     return s;
 }
+ 
 // Can pass in 0 or 3 parameters as doubles from 0 to 1 for error probabilities (other than the program name)
 int main() {
-    cout << "Enter in 3 doubles from 0 to 1 for IDS error probabilites, or press enter to use default error values of 0.01: ";
+    cout << "Enter in 3 doubles from 0 to 1 for IDS error probabilites, or press enter to use default error values of 0.02: ";
     if (cin.get() != '\n') {
         for (int i = 0; i < 2; i++) {
             cin >> err_prob[i];
@@ -60,9 +61,11 @@ int main() {
     cout << endl;
     for (int i = 0; i < 100; i++) {
         string s = random_string();
-        cout << "Original String: " << s << endl;
+        cout << "O: " << endl;
+        cout << s << endl;
         string modified = modify(s);
-        cout << "String with Error: " << modified << endl;
-        cout << '\n';
+        cout << "E: " << endl;
+        cout << modified << endl;
+        cout << endl;
     }
 }
