@@ -2,12 +2,13 @@
 #include <string>
 #include <fstream>
 #include <ctime>
+#include "filegen.hpp"
+#include "bases.hpp"
 
 using namespace std;
 
-static char bases[4] = {'A', 'T', 'G', 'C'};
 static double err_prob[3] = {0.02, 0.02, 0.02}; // insertions / deletions / substitutions. Default probability is 0.02
-static double era_error = 0.001;
+static double era_error = 0.001; // erasure error. Default probability is 0.001 per line in the fasta file
 
 // Maybe include static variables that represent trackers for what errors have occured thus far
 static int insertions = 0;
@@ -30,7 +31,6 @@ int create_ids_error() {
 // Generates or does not generate an erasure error for a line in the given fasta file based on the probability of era_error
 bool create_era_error() {
     double r = double(rand()) / RAND_MAX;
-    cout << r << endl;
     if (r < era_error) {
         return true;
     }
@@ -57,38 +57,33 @@ string ids(string seq) {
     return nseq;
 }
 
-// Returns a completely random DNA string of length 200
-string random_string() {
-    string s;
-    for (int i = 0; i < 200; i++) {
-        s += bases[rand() % 4];
-    }
-    return s;
-}
+
  
-// Can pass in 0 or 3 parameters as doubles from 0 to 1 for error probabilities (other than the program name)
 int main() {
     srand(time(NULL)); // generate a seed for the random function
-    cout << "Enter in the name of the input fasta file. Ex. \"dog.fasta\": ";
-    string file;
-    cin >> file;
-    cin.get(); // not entirely sure why I need this line. Some weird C++ I/O thing
+    cout << "Enter in the name of the input fasta file. (Ex. \"dog.fasta\"), or press enter to use a randomly generated input file" << endl;
+    string file = "input.fasta";
+    if (cin.get() != '\n') {
+        cin >> file;
+        cin.get(); // Need this line to pick up the '\n' character 
+    }
+    else {
+        gen(file);
+    }
     cout << "Enter in 3 doubles from 0 to 1 for respective IDS error probabilites, or press enter to use default error values of 0.02: " << endl;
     if (cin.get() != '\n') {
         for (int i = 0; i < 3; i++) {
             cin >> err_prob[i];
         }
+        cin.get();
     }
-    cin.get();
     cout << "Enter in 1 double from 0 to 1 for erasure error probability, or press enter to use a default value of 0.001: " << endl;
     if (cin.get() != '\n') {
         cin >> era_error;
-        cin.get();
     }
     cout << endl;
-
     ifstream input(file); // input stream. default parameter is ios::in
-    ofstream output("output.fasta"); // output stream. default parameter is ios::out
+    ofstream output("output.fasta", ios::trunc); // output stream. default parameter is ios::out
     string line;
     while (getline(input, line)) {
         if (!line.empty()) {
