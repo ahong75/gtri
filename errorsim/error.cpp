@@ -83,7 +83,7 @@ int main() {
     }
     cout << endl;
     ifstream input(file); // input stream. default parameter is ios::in
-    ofstream output("output.fasta", ios::trunc); // output stream. default parameter is ios::out
+    ofstream output("output.fasta", ios::out | ios::trunc); // output stream. ios::trunc clears the file before writing to it
     string line;
     while (getline(input, line)) {
         if (!line.empty()) {

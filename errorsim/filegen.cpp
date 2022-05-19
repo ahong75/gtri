@@ -5,7 +5,7 @@
 #include <random>
 
 void gen(string file_name) {
-    ofstream output(file_name, ofstream::trunc); // trunc clears the entire file when opening
+    ofstream output(file_name, ios::out | ios::trunc); // trunc clears the entire file when opening
     for (int i = 0; i < 1000; i++) {
         output << ">Oligo #: " << i + 1 << endl;
         output << random_oligo() << endl;
