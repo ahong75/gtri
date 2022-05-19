@@ -6,18 +6,18 @@
 using namespace std;
 
 // function that encodes a vector of bytes with a parity byte with even parity
-vector<char> encode(vector<char> seq) {
-    char pbyte = 0;
-    for (char c : seq) {
+vector<unsigned char> encode(vector<unsigned char> seq) {
+    unsigned char pbyte = 0;
+    for (auto c : seq) {
         pbyte ^= c;
     }
     seq.push_back(pbyte);
 }
 
 // function that computes parity of all the bytes and determines whether or not its even
-pair<bool, vector<char>> decode(vector<char> seq) {
-    char pbyte = 0;
-    for (char c : seq) {
+pair<bool, vector<unsigned char>> decode(vector<unsigned char> seq) {
+    unsigned char pbyte = 0;
+    for (auto c : seq) {
         pbyte ^= c;
     }
     seq.pop_back();
