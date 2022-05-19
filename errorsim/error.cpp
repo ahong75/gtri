@@ -45,7 +45,7 @@ string ids(string seq) {
         int err = create_ids_error(); // 0 -> insertion, 1 -> deletion, 2 -> substitution, 3 -> no error
         int nt = rand() % 4; // 0 -> A, 1 -> C, 2 -> T, 3 -> G
         if (bases[nt] == seq[i] && err == 2) {
-            nt = (nt + (1 + rand() % 2)) % 3; // ensures that for substitutions, bases are not substituted with the same base;
+            nt = (nt + (1 + rand() % 3)) % 3; // ensures that for substitutions, bases are not substituted with the same base;
         }
         if (err == 0 || err == 2) {
             nseq += bases[nt]; // for insertions or substitutions, a random base is added to the new sequence
@@ -60,7 +60,6 @@ string ids(string seq) {
 
  
 int main() {
-    srand(time(NULL)); // generate a seed for the random function
     cout << "Enter in the name of the input fasta file. (Ex. \"dog.fasta\"), or press enter to use a randomly generated input file" << endl;
     string file = "input.fasta";
     if (cin.get() != '\n') {
@@ -91,6 +90,7 @@ int main() {
                 output << line << endl;
             }
             else {
+                srand(time(NULL)); // generate a seed for the random function
                 if (create_era_error()) {
                     continue;
                 }
