@@ -4,6 +4,7 @@
 #include <ctime>
 #include "filegen.hpp"
 #include "bases.hpp"
+#include <random>
 
 using namespace std;
 
@@ -15,9 +16,16 @@ static int insertions = 0;
 static int deletions = 0;
 static int substitution = 0;
 
+// random generators
+random_device dev;
+mt19937 rng(dev());
+uniform_int_distribution<mt19937::result_type> distbig(0, 1000);
+uniform_int_distribution<mt19937::result_type> dist3(0, 3);
+uniform_int_distribution<mt19937::result_type> dist2(0, 2);
+
 // Generates or does not generate an ids error based on the probabilities in err_prob
 int create_ids_error() {
-    double r = double(rand()) / RAND_MAX;
+    double r = double(distbig(rng)) / 1000;
     double sum = 0;
     for (int i = 0; i < 3; i++) {
         sum += err_prob[i];
@@ -30,7 +38,7 @@ int create_ids_error() {
 
 // Generates or does not generate an erasure error for a line in the given fasta file based on the probability of era_error
 bool create_era_error() {
-    double r = double(rand()) / RAND_MAX;
+    double r = double(distbig(rng)) / 1000;
     if (r < era_error) {
         return true;
     }
@@ -43,9 +51,9 @@ string ids(string seq) {
     int len = seq.length();
     for (int i = 0; i < len; i++) {
         int err = create_ids_error(); // 0 -> insertion, 1 -> deletion, 2 -> substitution, 3 -> no error
-        int nt = rand() % 4; // 0 -> A, 1 -> C, 2 -> T, 3 -> G
+        int nt = dist3(rng); // 0 -> A, 1 -> C, 2 -> T, 3 -> G
         if (bases[nt] == seq[i] && err == 2) {
-            nt = (nt + (1 + rand() % 3)) % 3; // ensures that for substitutions, bases are not substituted with the same base;
+            nt = (nt + (1 + dist2(rng))) % 3; // ensures that for substitutions, bases are not substituted with the same base;
         }
         if (err == 0 || err == 2) {
             nseq += bases[nt]; // for insertions or substitutions, a random base is added to the new sequence
@@ -90,11 +98,12 @@ int main() {
                 output << line << endl;
             }
             else {
-                srand(time(NULL)); // generate a seed for the random function
                 if (create_era_error()) {
                     continue;
                 }
+                string modified = ids(line);
                 output << ids(line) << endl; // if the line is not erased, add possible ids errors
+                output << line.length() << " " << modified.length() << endl;
             }
         }
     }
