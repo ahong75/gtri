@@ -5,8 +5,8 @@
 #include <vector>
 
 // constants that depend on the size of the input vector
-const int width = 10;
-const int height = 12;
+static int width = 10;
+static int height = 12;
 
 // encodes a vector with a xor byte for each "column"
 std::vector<unsigned char> encode(std::vector<unsigned char> input) {
@@ -52,6 +52,10 @@ int main() {
   // choose random number from 1 to 130 (10 xor bytes)
   // find that bytes' coordinates and then set it to 0 (erasure)
   // pass it into decode, and see if original vector matches decoded vector
+  std::cout << "Enter in the width of the RAID array: ";
+  std::cin >> width;
+  std::cout << "Enter in the height of the RAID array: ";
+  std::cin >> height;
   for (int i = 0; i < 100; i++) {
     std::vector<unsigned char> orig(width * height);
     for (int i = 0; i < width * height; i++) {

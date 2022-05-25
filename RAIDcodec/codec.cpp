@@ -69,11 +69,13 @@ void encode(std::vector<unsigned char> input, int w, int h) {
   output.close();
 }
 
-// decode vector with IDS and erasure error using RAID
-// note that this version of decode cannot deal with erasures of entire rows
-// because there is no indexing
-// another assumption made is that the rows in the FASTA file are in the correct
-// order
+// Decode a FASTA file potentially containing IDS and erasure errors using RAID
+// concepts. Note that this version of the decode function cannot deal with
+// erasures of entire rows / oligos or out of order rows because there is no
+// indexing.
+// Preconditions:
+// There are no erasure errors of entire rows
+// No rows in the given FASTA file are out of order
 std::pair<bool, std::vector<unsigned char>>
 decode(std::vector<unsigned char> input) {
   // Iterate through entire array while checking which rows have an error
