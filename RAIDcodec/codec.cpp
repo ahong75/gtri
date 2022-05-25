@@ -1,59 +1,107 @@
 #include <cstdlib>
 #include <ctime>
+#include <fstream>
 #include <iostream>
 #include <random>
+#include <string>
 #include <vector>
 
-// constants that are determined by the user
+// Constants that are determined by the user when passing in arguments to
+// encode.
 static int width = 1;
 static int height = 1;
 
-// encodes a vector with a xor byte for each "column" and a xor byte for each
-// "row" this means the resulting structure of the array visualized in 2D is
-// missing the bottom-right corner entry
+// Encodes a vector with a xor byte for each "column", and a xor
+// byte for each "row".
 /**
   +++    +++e
   +++    +++e
   +++ -> +++e
          eee
   **/
-std::vector<unsigned char> encode(std::vector<unsigned char> input) {
-  // A new array must be initalized bc for the row bytes, it's not efficient to
-  // shift everything ahead of it 1 spot forwards each time.
-  std::vector<unsigned char> res((width + 1) * (height + 1) - 1);
+// Preconditions:
+// w and h are positive integers
+// The size of the input array is equal to w * h
+void encode(std::vector<unsigned char> input, int w, int h) {
+  if (input.size() != w * h) {
+    std::cout << "The size of the input array does not equal w * h";
+    return;
+  }
+  width = w;
+  height = h;
+  // Will store the new encoded RAID array
+  std::vector<std::vector<unsigned char>> res(
+      width + 1, std::vector<unsigned char>(height + 1));
   for (int i = 0; i < height; i++) {
-    // xor byte for the row
+    // Xor byte for the row
     unsigned char rbyte = 0;
     for (int j = 0; j < width; j++) {
       unsigned char cur = input[width * i + j];
-      // xoring the correct byte on the appended row
-      res[(width + 1) * height + j] ^= cur;
+      // Xoring the corresponding column byte
+      res[height + 1][j] ^= cur;
+      // Xoring the row byte
       rbyte ^= cur;
-      res[width * i + j] = cur;
+      res[i][j] = cur;
     }
-    // setting the row byte
-    res[i * (width + 1)] = rbyte;
+    // Setting the row byte
+    res[i][width + 1] = rbyte;
   }
-  return res;
-}
-
-// decodes a vector with IDS and erasure error using RAID
-std::vector<unsigned char> decode(std::vector<unsigned char> input, int num) {
-  int col = num % width;
-  // deal with the case where the corrupted byte is a parity byte
-  if (input.size() - num >= width) {
-    unsigned char pbyte = input[width * height + col];
-    for (int i = 0; i < height; i++) {
-      if (width * i + col != num) {
-        pbyte ^= input[width * i + col];
+  // Outputting to fasta file. ios::trunc clears the file before writing to it
+  std::ofstream output("encoded.fasta", std::ios::out | std::ios::trunc);
+  for (int i = 0; i < height + 1; i++) {
+    std::cout << '>' << i + 1 << std::endl;
+    for (int j = 0; j < width + 1; j++) {
+      // Mask is 3 because 3 = 11b
+      for (int k = 0; k < 8; k += 2) {
+        int num = 3 & (res[i][j] >> k);
+        if (num == 0) {
+          output << 'A';
+        } else if (num == 1) {
+          output << 'G';
+        } else if (num == 2) {
+          output << 'T';
+        } else {
+          output << 'C';
+        }
       }
     }
-    std::cout << "Recovered Byte: " << +pbyte << std::endl;
-    input[num] = pbyte;
-  } else {
-    std::cout << "Corrupted Byte is a XOR Byte" << std::endl;
   }
-  return std::vector<unsigned char>(input.begin(), input.end() - width);
+  output.close();
+}
+
+// decode vector with IDS and erasure error using RAID
+// note that this version of decode cannot deal with erasures of entire rows
+// because there is no indexing
+// another assumption made is that the rows in the FASTA file are in the correct
+// order
+std::pair<bool, std::vector<unsigned char>>
+decode(std::vector<unsigned char> input) {
+  // Iterate through entire array while checking which rows have an error
+  std::vector<int> errors;
+  for (int i = 0; i < height + 1; i++) {
+    unsigned char pbyte = 0;
+    for (int j = 0; j < width + 1; j++) {
+      pbyte ^= input[i * (width + 1) + j]; // calculating parity
+    }
+    if (pbyte != 0) {
+      errors.push_back(i);
+    }
+  }
+  if (errors.size() > 1) {
+    return {false, input};
+  } else if (errors.size() == 1) {
+    // where the corrected bytes will be stored
+    std::vector<unsigned char> corrected(width);
+    for (int i = 0; i < width; i++) {
+    }
+    for (int i = 0; i < height; i++) {
+      if (i == errors.front())
+        continue;
+      for (int j = 0; j < width; j++) {
+        corrected[j] ^
+      }
+    }
+  }
 }
 
 std::random_device dev;
@@ -66,22 +114,10 @@ int main() {
   // choose random number from 1 to 130 (10 xor bytes)
   // find that bytes' coordinates and then set it to 0 (erasure)
   // pass it into decode, and see if original vector matches decoded vector
+
+  // ideally these prompts will be addressed in a passed in JSON file
   std::cout << "Enter in the width of each RAID array: ";
   std::cin >> width;
   std::cout << "Enter in the height of each RAID array: ";
   std::cin >> height;
-  for (int i = 0; i < 100; i++) {
-    std::vector<unsigned char> orig(width * height);
-    for (int i = 0; i < width * height; i++) {
-      orig[i] = dist1(rng);
-    }
-    std::vector<unsigned char> encoded = encode(orig);
-    // applyError(encoded);
-    std::vector<unsigned char> decoded = decode(encoded);
-    if (orig == decoded) {
-      std::cout << "Passed" << std::endl;
-    } else {
-      std::cout << "Failed" << std::endl;
-    }
-  }
 }
