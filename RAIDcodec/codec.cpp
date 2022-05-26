@@ -1,5 +1,4 @@
 #include <cstdlib>
-#include <ctime>
 #include <fstream>
 #include <iostream>
 #include <random>
@@ -10,8 +9,8 @@
 // encode. I suppose we'd want these values to be included in the JSON file
 // later.
 
-static int width = 1;
-static int height = 1;
+// static int width = 1;
+// static int height = 1;
 
 // Encodes a vector with a xor byte for each "column", and a xor
 // byte for each "row" into a FASTA file called "encoded.fasta."
@@ -24,13 +23,11 @@ static int height = 1;
 // Preconditions:
 // w and h are positive integers
 // The size of the input array is equal to w * h
-void encode(std::vector<unsigned char> &input, int w, int h) {
-  if (input.size() != w * h) {
+void encode(std::vector<unsigned char> &input, int width, int height) {
+  if (input.size() != width * height) {
     std::cout << "The size of the input array does not equal w * h";
     return;
   }
-  width = w;
-  height = h;
   // Will store the new encoded RAID array
   std::vector<std::vector<unsigned char>> res(
       height + 1, std::vector<unsigned char>(width + 1));
@@ -79,7 +76,10 @@ void encode(std::vector<unsigned char> &input, int w, int h) {
 // indexing.
 // Preconditions:
 // No rows in the given FASTA file are out of order
-std::vector<unsigned char> decode(std::ifstream &file) {
+// w and h are positive integers
+// The size of the input array is equal to w * h
+// The same w and h were used for the encoding of this FASTA file
+std::vector<unsigned char> decode(std::ifstream &file, int width, int height) {
   // Array that will contain the reconstructed RAID array
   std::vector<std::vector<unsigned char>> arr;
   // Array that will store indices of rows with errors (erasure, IDS)
@@ -175,38 +175,4 @@ std::vector<unsigned char> decode(std::ifstream &file) {
     }
   }
   return decoded;
-}
-
-std::random_device dev;
-std::mt19937 rng(dev());
-std::uniform_int_distribution<std::mt19937::result_type> dist1(1, 255);
-
-void test() {
-  std::vector<unsigned char> orig(120);
-  for (int i = 0; i < 120; i++) {
-    orig[i] = dist1(rng);
-  }
-  encode(orig, 10, 12);
-  std::ifstream file("encoded.fasta");
-  std::vector<unsigned char> decoded = decode(file);
-  if (orig == decoded) {
-    std::cout << "Passed" << std::endl;
-  } else {
-    std::cout << "Failed" << std::endl;
-  }
-}
-
-int main() {
-  // What needs to be tested:
-  // Whether the program can encode and decode with 0 errors
-  // Simply pass in the outputted fasta
-  // Whether it can recover from different types of errors
-
-  // make random vector size 120 and pass it into encode
-  // choose random number from 1 to 130 (10 xor bytes)
-  // find that bytes' coordinates and then set it to 0 (erasure)
-  // pass it into decode, and see if original vector matches decoded vector
-  for (int i = 0; i < 100; i++) {
-    test();
-  }
 }
