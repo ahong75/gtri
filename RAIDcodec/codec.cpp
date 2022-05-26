@@ -12,13 +12,63 @@
 // static int width = 1;
 // static int height = 1;
 
-// Encodes a vector with a xor byte for each "column", and a xor
-// byte for each "row" into a FASTA file called "encoded.fasta."
+// Number of indexing bytes per oligo / row
+static int ibytes = 3;
+
+// Helper function for the encode function that takes in an array of unsigned
+// characters and segments it into rows while adding indexing to each row.
+std::vector<std::vector<unsigned char>>
+outer_encode(std::vector<unsigned char> &input, int width, int height) {
+  std::vector<std::vector<unsigned char>> output(height);
+  for (int i = 0; i < height; i++) {
+    std::vector<unsigned char> row;
+    for (int j = 0; j < 3; j++) {
+      // i is the index being represented as 3 bytes
+      row.push_back(i >> (4 * j));
+    }
+    for (int j = 0; j < width; j++) {
+      row.push_back(input[i * width + j]);
+    }
+    output[i] = row;
+  }
+  return output;
+}
+
+// Helper function for the encode function that encodes a given 2D array into a
+// RAID-based array
+std::vector<std::vector<unsigned char>>
+inner_encode(std::vector<std::vector<unsigned char>> &input) {
+  // Extracting height and width based on the input array
+  int height = input.size();
+  int width = input[0].size();
+  // Will store encoded RAID array
+  std::vector<std::vector<unsigned char>> output(
+      height + 1, std::vector<unsigned char>(width + 1));
+  for (int i = 0; i < height; i++) {
+    for (int j = 0; j < width; j++) {
+      unsigned char cur = input[i][j];
+      // Xoring the corresponding column byte
+      output[height][j] ^= cur;
+      // Xoring the row byte
+      output[i][width] ^= cur;
+      // Copying over payload byte
+      output[i][j] = input[i][j];
+    }
+  }
+  return output;
+}
+
+// Encodes a byte vector with a xor byte for each "column", and
+// a xor byte for each "row". 3 index bytes  into a FASTA file called
+// "encoded.fasta."
 /**
-  +++    +++e
-  +++    +++e
-  +++ -> +++e
-         eee
+  + -> payload byte
+  e -> redundant byte
+  f -> filler byte (has no purpose)
+  +++    eee+++e
+  +++    eee+++e
+  +++ -> eee+++e
+         eeeeeef
   **/
 // Preconditions:
 // w and h are positive integers
@@ -28,29 +78,15 @@ void encode(std::vector<unsigned char> &input, int width, int height) {
     std::cout << "The size of the input array does not equal w * h";
     return;
   }
-  // Will store the new encoded RAID array
-  std::vector<std::vector<unsigned char>> res(
-      height + 1, std::vector<unsigned char>(width + 1));
-  for (int i = 0; i < height; i++) {
-    // Xor byte for the row
-    unsigned char rbyte = 0;
-    for (int j = 0; j < width; j++) {
-      unsigned char cur = input[width * i + j];
-      // Xoring the corresponding column byte
-      res[height][j] ^= cur;
-      // Xoring the row byte
-      rbyte ^= cur;
-      // Storing a payload byte
-      res[i][j] = cur;
-    }
-    // Setting the row byte
-    res[i][width] = rbyte;
-  }
+  // Applying outer and inner codecs
+  std::vector<std::vector<unsigned char>> res =
+      outer_encode(input, width, height);
+  res = inner_encode(res);
   // Outputting to fasta file. ios::trunc clears the file before writing to it
   std::ofstream output("encoded.fasta", std::ios::out | std::ios::trunc);
-  for (int i = 0; i < height + 1; i++) {
+  for (int i = 0; i < res.size(); i++) {
     output << '>' << i + 1 << std::endl;
-    for (int j = 0; j < width + 1; j++) {
+    for (int j = 0; j < res[0].size(); j++) {
       for (int k = 6; k >= 0; k -= 2) {
         // Mask is 3 because 3 = 11b
         int num = 3 & (res[i][j] >> k);
