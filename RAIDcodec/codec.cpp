@@ -38,21 +38,22 @@ void encode(std::vector<unsigned char> input, int w, int h) {
     for (int j = 0; j < width; j++) {
       unsigned char cur = input[width * i + j];
       // Xoring the corresponding column byte
-      res[height + 1][j] ^= cur;
+      res[height][j] ^= cur;
       // Xoring the row byte
       rbyte ^= cur;
+      // Storing a payload byte
       res[i][j] = cur;
     }
     // Setting the row byte
-    res[i][width + 1] = rbyte;
+    res[i][width] = rbyte;
   }
   // Outputting to fasta file. ios::trunc clears the file before writing to it
   std::ofstream output("encoded.fasta", std::ios::out | std::ios::trunc);
   for (int i = 0; i < height + 1; i++) {
-    std::cout << '>' << i + 1 << std::endl;
+    output << '>' << i + 1 << std::endl;
     for (int j = 0; j < width + 1; j++) {
-      // Mask is 3 because 3 = 11b
-      for (int k = 0; k < 8; k += 2) {
+      for (int k = 6; k >= 0; k -= 2) {
+        // Mask is 3 because 3 = 11b
         int num = 3 & (res[i][j] >> k);
         if (num == 0) {
           output << 'A';
@@ -74,36 +75,99 @@ void encode(std::vector<unsigned char> input, int w, int h) {
 // erasures of entire rows / oligos or out of order rows because there is no
 // indexing.
 // Preconditions:
-// There are no erasure errors of entire rows
 // No rows in the given FASTA file are out of order
-std::pair<bool, std::vector<unsigned char>>
-decode(std::vector<unsigned char> input) {
-  // Iterate through entire array while checking which rows have an error
+std::vector<unsigned char> decode(std::ifstream &file) {
+  // Array that will contain the reconstructed RAID array
+  std::vector<std::vector<unsigned char>> arr;
+  // Array that will store indices of rows with errors (erasure, IDS)
   std::vector<int> errors;
-  for (int i = 0; i < height + 1; i++) {
+  std::string line;
+  // Index for RAID array row
+  int k = 0;
+  while (getline(file, line)) {
+    // Might not need the first check, as there never should be empty lines
+    if (!line.empty() && line[0] != '>') {
+      // Width + 1 columns, and 4 nucelotides per byte
+      // This check is simple, if we decide to just leave the bottom-right
+      // corner of the RAID array as padding
+      if (line.length() != (width + 1) * 4) {
+        errors.push_back(k);
+        arr.push_back({});
+      } else {
+        std::vector<unsigned char> row(width + 1);
+        for (int i = 0; i < line.length(); i += 4) {
+          unsigned char byte = 0;
+          for (int j = 0; j < 4; j++) {
+            // The two bits we are trying to extract
+            int nibble = 0;
+            if (line[i + j] == 'A') {
+              nibble = 0;
+            } else if (line[i + j] == 'G') {
+              nibble = 1;
+            } else if (line[i + j] == 'T') {
+              nibble = 2;
+            } else {
+              nibble = 3;
+            }
+            byte &= (nibble << (2 * j));
+          }
+          row[i] = byte;
+        }
+        arr[k] = row;
+      }
+      k++;
+    }
+  }
+  // Iterate through the reconstructed RAID array while calculating parity for
+  // each row. We do not need to iterate through the appended parity byte row
+  for (int i = 0; i < height; i++) {
     unsigned char pbyte = 0;
     for (int j = 0; j < width + 1; j++) {
-      pbyte ^= input[i * (width + 1) + j]; // calculating parity
+      pbyte ^= arr[i][j]; // calculating parity
     }
     if (pbyte != 0) {
       errors.push_back(i);
     }
   }
   if (errors.size() > 1) {
-    return {false, input};
-  } else if (errors.size() == 1) {
-    // where the corrected bytes will be stored
-    std::vector<unsigned char> corrected(width);
-    for (int i = 0; i < width; i++) {
-    }
-    for (int i = 0; i < height; i++) {
-      if (i == errors.front())
-        continue;
-      for (int j = 0; j < width; j++) {
-        corrected[j] ^
+    // If there is more than one row with errors we cannot recover the data
+    return {};
+  } else if (errors.empty()) {
+    // If there are no errors from checking the row parity bytes, we will check
+    // the column bytes
+    for (int j = 0; j < width; j++) {
+      unsigned char pbyte = 0;
+      for (int i = 0; i < height + 1; i++) {
+        pbyte ^= arr[i][j];
+      }
+      // The column has an error, which we cannot correct
+      if (pbyte != 0) {
+        return {};
       }
     }
+    // We can only correct errors if there's exactly 1 row with incorrect parity
+  } else {
+    // Index of row with error
+    int wrong = errors.front();
+    for (int i = 0; i < width; i++) {
+      // The parity byte of the current corresponding column
+      unsigned char pbyte = arr[height][i];
+      for (int j = 0; j < height; j++) {
+        pbyte ^= arr[i][j];
+      }
+      // Setting the corrected byte
+      arr[wrong][i] = pbyte;
+    }
   }
+  // Array to store decoded data
+  std::vector<unsigned char> decoded(width * height);
+  // Parse the RAID array to get the original data
+  for (int i = 0; i < height; i++) {
+    for (int j = 0; j < width; j++) {
+      decoded[width * i + j] = arr[i][j];
+    }
+  }
+  return decoded;
 }
 
 std::random_device dev;
