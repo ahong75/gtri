@@ -7,12 +7,14 @@
 #include <vector>
 
 // Constants that are determined by the user when passing in arguments to
-// encode.
+// encode. I suppose we'd want these values to be included in the JSON file
+// later.
+
 static int width = 1;
 static int height = 1;
 
 // Encodes a vector with a xor byte for each "column", and a xor
-// byte for each "row".
+// byte for each "row" into a FASTA file called "encoded.fasta."
 /**
   +++    +++e
   +++    +++e
@@ -22,7 +24,7 @@ static int height = 1;
 // Preconditions:
 // w and h are positive integers
 // The size of the input array is equal to w * h
-void encode(std::vector<unsigned char> input, int w, int h) {
+void encode(std::vector<unsigned char> &input, int w, int h) {
   if (input.size() != w * h) {
     std::cout << "The size of the input array does not equal w * h";
     return;
@@ -31,7 +33,7 @@ void encode(std::vector<unsigned char> input, int w, int h) {
   height = h;
   // Will store the new encoded RAID array
   std::vector<std::vector<unsigned char>> res(
-      width + 1, std::vector<unsigned char>(height + 1));
+      height + 1, std::vector<unsigned char>(width + 1));
   for (int i = 0; i < height; i++) {
     // Xor byte for the row
     unsigned char rbyte = 0;
@@ -66,6 +68,7 @@ void encode(std::vector<unsigned char> input, int w, int h) {
         }
       }
     }
+    output << std::endl;
   }
   output.close();
 }
@@ -92,9 +95,9 @@ std::vector<unsigned char> decode(std::ifstream &file) {
       // corner of the RAID array as padding
       if (line.length() != (width + 1) * 4) {
         errors.push_back(k);
-        arr.push_back({});
+        arr.push_back(std::vector<unsigned char>(width));
       } else {
-        std::vector<unsigned char> row(width + 1);
+        std::vector<unsigned char> row;
         for (int i = 0; i < line.length(); i += 4) {
           unsigned char byte = 0;
           for (int j = 0; j < 4; j++) {
@@ -109,15 +112,17 @@ std::vector<unsigned char> decode(std::ifstream &file) {
             } else {
               nibble = 3;
             }
-            byte &= (nibble << (2 * j));
+            // We are trying to reconstruct the byte left to right
+            byte |= (nibble << (2 * (3 - j)));
           }
-          row[i] = byte;
+          row.push_back(byte);
         }
-        arr[k] = row;
+        arr.push_back(row);
       }
       k++;
     }
   }
+  file.close();
   // Iterate through the reconstructed RAID array while calculating parity for
   // each row. We do not need to iterate through the appended parity byte row
   for (int i = 0; i < height; i++) {
@@ -151,16 +156,18 @@ std::vector<unsigned char> decode(std::ifstream &file) {
     int wrong = errors.front();
     for (int i = 0; i < width; i++) {
       // The parity byte of the current corresponding column
-      unsigned char pbyte = arr[height][i];
+      unsigned char pbyte = 0;
       for (int j = 0; j < height; j++) {
-        pbyte ^= arr[i][j];
+        if (j != wrong) {
+          pbyte ^= arr[i][j];
+        }
       }
       // Setting the corrected byte
       arr[wrong][i] = pbyte;
     }
   }
   // Array to store decoded data
-  std::vector<unsigned char> decoded(width * height);
+  std::vector<unsigned char> decoded(120);
   // Parse the RAID array to get the original data
   for (int i = 0; i < height; i++) {
     for (int j = 0; j < width; j++) {
@@ -174,16 +181,32 @@ std::random_device dev;
 std::mt19937 rng(dev());
 std::uniform_int_distribution<std::mt19937::result_type> dist1(1, 255);
 
+void test() {
+  std::vector<unsigned char> orig(120);
+  for (int i = 0; i < 120; i++) {
+    orig[i] = dist1(rng);
+  }
+  encode(orig, 10, 12);
+  std::ifstream file("encoded.fasta");
+  std::vector<unsigned char> decoded = decode(file);
+  if (orig == decoded) {
+    std::cout << "Passed" << std::endl;
+  } else {
+    std::cout << "Failed" << std::endl;
+  }
+}
+
 int main() {
-  // how to test
+  // What needs to be tested:
+  // Whether the program can encode and decode with 0 errors
+  // Simply pass in the outputted fasta
+  // Whether it can recover from different types of errors
+
   // make random vector size 120 and pass it into encode
   // choose random number from 1 to 130 (10 xor bytes)
   // find that bytes' coordinates and then set it to 0 (erasure)
   // pass it into decode, and see if original vector matches decoded vector
-
-  // ideally these prompts will be addressed in a passed in JSON file
-  std::cout << "Enter in the width of each RAID array: ";
-  std::cin >> width;
-  std::cout << "Enter in the height of each RAID array: ";
-  std::cin >> height;
+  for (int i = 0; i < 100; i++) {
+    test();
+  }
 }
