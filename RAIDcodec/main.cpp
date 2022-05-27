@@ -17,8 +17,7 @@ void test(int width, int height) {
     orig[i] = dist1(rng);
   }
   encode(orig, width, height);
-  std::ifstream file("encoded.fasta");
-  std::vector<unsigned char> decoded = decode(file, width, height);
+  std::vector<unsigned char> decoded = decode("encoded.fasta", width, height);
   if (orig == decoded) {
     std::cout << "Passed" << std::endl;
   } else {

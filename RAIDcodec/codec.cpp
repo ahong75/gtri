@@ -79,12 +79,13 @@ void encode(std::vector<unsigned char> &input, int width, int height) {
 // w and h are positive integers
 // The size of the input array is equal to w * h
 // The same w and h were used for the encoding of this FASTA file
-std::vector<unsigned char> decode(std::ifstream &file, int width, int height) {
+std::vector<unsigned char> decode(std::string filename, int width, int height) {
   // Array that will contain the reconstructed RAID array
   std::vector<std::vector<unsigned char>> arr;
   // Array that will store indices of rows with errors (erasure, IDS)
   std::vector<int> errors;
   std::string line;
+  std::ifstream file(filename);
   // Index for RAID array row
   int k = 0;
   while (getline(file, line)) {
