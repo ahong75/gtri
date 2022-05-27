@@ -43,10 +43,9 @@ outer_encode(std::vector<unsigned char> &input, int width, int height) {
 // Helper function for the encode function that encodes a given 2D array into a
 // RAID-based array
 std::vector<std::vector<unsigned char>>
-inner_encode(std::vector<std::vector<unsigned char>> &input) {
+inner_encode(std::vector<std::vector<unsigned char>> &input, int width,
+             int height) {
   // Extracting height and width based on the input array
-  int height = input.size();
-  int width = input[0].size();
   // Will store encoded RAID array
   std::vector<std::vector<unsigned char>> output(
       height + 1, std::vector<unsigned char>(width + 1));
@@ -95,7 +94,7 @@ void encode(std::vector<unsigned char> &input, int width, int height) {
   // Applying outer and inner codecs
   std::vector<std::vector<unsigned char>> res =
       outer_encode(input, width, height);
-  res = inner_encode(res);
+  res = inner_encode(res, res[0].size(), height);
   // Outputting to fasta file. ios::trunc clears the file before writing to it
   std::ofstream output("encoded.fasta", std::ios::out | std::ios::trunc);
   for (int i = 0; i < res.size(); i++) {
@@ -127,7 +126,7 @@ void encode(std::vector<unsigned char> &input, int width, int height) {
 // w and h are positive integers
 // The size of the input array is equal to w * h
 // The same w and h were used for the encoding of this FASTA file
-std::vector<unsigned char> decode(std::ifstream &file, int width, int height) {
+std::vector<unsigned char> decode(std::string filename, int width, int height) {
   // Array that will contain the reconstructed RAID array
   std::vector<std::vector<unsigned char>> arr(
       height + 1, std::vector<unsigned char>(width));
@@ -135,6 +134,7 @@ std::vector<unsigned char> decode(std::ifstream &file, int width, int height) {
   std::vector<int> errors;
   // Set that tracks what rows have been sampled
   std::unordered_set<int> received;
+  std::ifstream file(filename);
   std::string line;
   while (getline(file, line)) {
     // Might not need the first check, as there never should be empty lines
