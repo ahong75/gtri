@@ -167,7 +167,7 @@ std::vector<unsigned char> decode(std::ifstream &file, int width, int height) {
     }
   }
   // Array to store decoded data
-  std::vector<unsigned char> decoded(120);
+  std::vector<unsigned char> decoded(height * width);
   // Parse the RAID array to get the original data
   for (int i = 0; i < height; i++) {
     for (int j = 0; j < width; j++) {
