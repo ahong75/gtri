@@ -14,6 +14,7 @@
 // static int height = 1;
 
 // Number of indexing bytes per oligo / row
+// Indexing bytes used to establish order
 static int ibytes = 3;
 
 // Helper function for the encode function that takes in an array of unsigned
@@ -32,7 +33,7 @@ outer_encode(std::vector<unsigned char> &input, int width, int height) {
       if (i != height) {
         row.push_back(input[i * width + j]);
       } else {
-        row.push_back(0);
+        row.push_back(0); // This is for the appended XOR row
       }
     }
     output[i] = row;
@@ -78,6 +79,7 @@ inner_encode(std::vector<std::vector<unsigned char>> &input, int width,
   e -> parity byte
   i -> index byte
   f -> filler byte (has no purpose)
+
   +++    iii+++e
   +++    iii+++e
   +++ -> iii+++e
@@ -122,7 +124,6 @@ void encode(std::vector<unsigned char> &input, int width, int height) {
 // Decode a FASTA file potentially containing IDS and erasure errors using RAID
 // concepts.
 // Preconditions:
-// No rows in the given FASTA file are out of order
 // w and h are positive integers
 // The size of the input array is equal to w * h
 // The same w and h were used for the encoding of this FASTA file
@@ -169,6 +170,7 @@ std::vector<unsigned char> decode(std::string filename, int width, int height) {
         index |= (row[i] << ((ibytes - 1 - i) * 8));
       }
       received.insert(index);
+      // Ideally would factor in consensus finding. Right now always overwrite with most recent read. 
       arr[index] = std::vector<unsigned char>(row.begin() + ibytes, row.end());
     }
   }
@@ -181,6 +183,7 @@ std::vector<unsigned char> decode(std::string filename, int width, int height) {
   }
   // Iterate through the reconstructed RAID array while calculating parity for
   // each row. We do not need to iterate through the appended parity byte row
+  // *Don't take out addresses before doing row-wise parity check
   if (errors.empty()) {
     for (int i = 0; i < height; i++) {
       unsigned char pbyte = 0;

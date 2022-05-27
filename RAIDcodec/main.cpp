@@ -16,7 +16,7 @@ void test(int width, int height) {
   for (int i = 0; i < width * height; i++) {
     orig[i] = dist1(rng);
   }
-  encode(orig, width, height);
+  // encode(orig, width, height);
   std::vector<unsigned char> decoded = decode("encoded.fasta", width, height);
   if (orig == decoded) {
     std::cout << "Passed" << std::endl;
