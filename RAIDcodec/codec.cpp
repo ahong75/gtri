@@ -181,13 +181,15 @@ std::vector<unsigned char> decode(std::ifstream &file, int width, int height) {
   }
   // Iterate through the reconstructed RAID array while calculating parity for
   // each row. We do not need to iterate through the appended parity byte row
-  for (int i = 0; i < height; i++) {
-    unsigned char pbyte = 0;
-    for (int j = 0; j < width + 1; j++) {
-      pbyte ^= arr[i][j]; // calculating parity
-    }
-    if (pbyte != 0) {
-      errors.push_back(i);
+  if (errors.empty()) {
+    for (int i = 0; i < height; i++) {
+      unsigned char pbyte = 0;
+      for (int j = 0; j < width + 1; j++) {
+        pbyte ^= arr[i][j]; // calculating parity
+      }
+      if (pbyte != 0) {
+        errors.push_back(i);
+      }
     }
   }
   if (errors.size() > 1) {
