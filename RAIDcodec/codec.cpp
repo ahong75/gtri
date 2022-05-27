@@ -49,7 +49,7 @@ inner_encode(std::vector<std::vector<unsigned char>> &input, int width,
   // Extracting height and width based on the input array
   // Will store encoded RAID array
   std::vector<std::vector<unsigned char>> output(
-      height + 1, std::vector<unsigned char>(width + 1));
+      height + 1, std::vector<unsigned char>(width + 1, 0));
   for (int i = 0; i < height + 1; i++) {
     for (int j = 0; j < width; j++) {
       unsigned char cur = input[i][j];
@@ -130,7 +130,7 @@ void encode(std::vector<unsigned char> &input, int width, int height) {
 std::vector<unsigned char> decode(std::string filename, int width, int height) {
   // Array that will contain the reconstructed RAID array
   std::vector<std::vector<unsigned char>> arr(
-      height + 1, std::vector<unsigned char>(width));
+      height + 1, std::vector<unsigned char>(width + 1, 0));
   // Array that will store indices of rows with errors (erasure, IDS)
   std::vector<int> errors;
   // Set that tracks what rows have been sampled
@@ -170,7 +170,8 @@ std::vector<unsigned char> decode(std::string filename, int width, int height) {
         index |= (row[i] << ((ibytes - 1 - i) * 8));
       }
       received.insert(index);
-      // Ideally would factor in consensus finding. Right now always overwrite with most recent read. 
+      // Ideally would factor in consensus finding. Right now always overwrite
+      // with most recent read.
       arr[index] = std::vector<unsigned char>(row.begin() + ibytes, row.end());
     }
   }
@@ -218,9 +219,9 @@ std::vector<unsigned char> decode(std::string filename, int width, int height) {
     for (int i = 0; i < width; i++) {
       // The parity byte of the current corresponding column
       unsigned char pbyte = 0;
-      for (int j = 0; j < height; j++) {
+      for (int j = 0; j < height + 1; j++) {
         if (j != wrong) {
-          pbyte ^= arr[i][j];
+          pbyte ^= arr[j][i];
         }
       }
       // Setting the corrected byte
