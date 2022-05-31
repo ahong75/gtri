@@ -20,55 +20,50 @@ static int ibytes = 3;
 // Helper function for the encode function that takes in an array of unsigned
 // characters and segments it into rows while adding indexing to each row.
 std::vector<std::vector<unsigned char>>
-outer_encode(std::vector<unsigned char> &input, int width, int height) {
+file_system(std::vector<unsigned char> &input, int width, int height) {
   // Height + 1 to account for indexing of the parity check row
-  std::vector<std::vector<unsigned char>> output(height + 1);
-  for (int i = 0; i < height + 1; i++) {
-    std::vector<unsigned char> row;
+  std::vector<std::vector<unsigned char>> output(height);
+  for (int i = 0; i < height; i++) {
+    std::vector<unsigned char> row(width + ibytes);
     for (int j = 0; j < ibytes; j++) {
       // i is the index being represented as 3 bytes
-      row.push_back((i >> (8 * (ibytes - 1 - j))) & 255);
+      row[j] = (i >> (8 * (ibytes - 1 - j))) & 255;
     }
     for (int j = 0; j < width; j++) {
-      if (i != height) {
-        row.push_back(input[i * width + j]);
-      } else {
-        row.push_back(0); // This is for the appended XOR row
-      }
+      row[j + ibytes] = input[i * width + j];
     }
     output[i] = row;
   }
   return output;
 }
 
-// Helper function for the encode function that encodes a given 2D array into a
-// RAID-based array
-std::vector<std::vector<unsigned char>>
-inner_encode(std::vector<std::vector<unsigned char>> &input, int width,
-             int height) {
-  // Extracting height and width based on the input array
-  // Will store encoded RAID array
-  std::vector<std::vector<unsigned char>> output(
-      height + 1, std::vector<unsigned char>(width + 1, 0));
-  for (int i = 0; i < height + 1; i++) {
-    for (int j = 0; j < width; j++) {
-      unsigned char cur = input[i][j];
-      // No parity check for indices
-      if (i != height && j >= ibytes) {
-        // Xoring the corresponding column byte
-        output[height][j] ^= cur;
-        // Xoring the row byte
-        output[i][width] ^= cur;
-      }
-      // All bytes except for ones that will override parity check bytes should
-      // be copied over
-      if (i != height || j < ibytes) {
-        // Copying over byte
-        output[i][j] = cur;
-      }
+// In-place helper function for the encode function that appends an extra parity
+// row to a given 2D array
+void outer_encode(std::vector<std::vector<unsigned char>> &input, int width,
+                  int height) {
+  input.push_back(std::vector<unsigned char>(width, 0));
+  for (int i = 0; i < height; i++) {
+    for (int j = ibytes; j < width; j++) {
+      input[height][j] ^= input[i][j];
     }
   }
-  return output;
+  for (int i = 0; i < ibytes; i++) {
+    // Indexing the extra parity row
+    input[height][i] = ((height + 1) >> (8 * (ibytes - 1 - i))) & 255;
+  }
+}
+
+// In-place helper function for the encode function that adds a parity byte to
+// each row of a given 2D array
+void inner_encode(std::vector<std::vector<unsigned char>> &input, int width,
+                  int height) {
+  for (int i = 0; i < height; i++) {
+    input[i].push_back(0);
+    for (int j = 0; j < width; j++) {
+      // Xoring the row byte
+      input[i][width] ^= input[i][j];
+    }
+  }
 }
 
 // Encodes a byte vector with a xor byte for each "column",
@@ -83,7 +78,7 @@ inner_encode(std::vector<std::vector<unsigned char>> &input, int width,
   +++    iii+++e
   +++    iii+++e
   +++ -> iii+++e
-         iiieeef
+         eeeeeef
   **/
 // Preconditions:
 // w and h are positive integers
@@ -93,14 +88,19 @@ void encode(std::vector<unsigned char> &input, int width, int height) {
     std::cout << "The size of the input array does not equal w * h";
     return;
   }
-  // Applying outer and inner codecs
+  // Applying file_system (indexing and metadata)
   std::vector<std::vector<unsigned char>> res =
-      outer_encode(input, width, height);
-  res = inner_encode(res, res[0].size(), height);
+      file_system(input, width, height);
+  // Applying outer codec
+  outer_encode(res, res[0].size(), res.size());
+  // Applying inner codec
+  inner_encode(res, res[0].size(), res.size());
   // Outputting to fasta file. ios::trunc clears the file before writing to it
   std::ofstream output("encoded.fasta", std::ios::out | std::ios::trunc);
   for (int i = 0; i < res.size(); i++) {
+    // Outputting label
     output << '>' << i + 1 << std::endl;
+    // Converting bits to nucleotides: 2 bits -> 1 nucleotide
     for (int j = 0; j < res[0].size(); j++) {
       for (int k = 6; k >= 0; k -= 2) {
         // Mask is 3 because 3 = 11b
@@ -121,6 +121,24 @@ void encode(std::vector<unsigned char> &input, int width, int height) {
   output.close();
 }
 
+// Helper function for the decode function. Returns false if the length of the
+// input row is incorrect or it does not pass the parity check. Returns true
+// otherwise.
+bool inner_decode(std::vector<unsigned char> &input, int width) {
+  // If the length is wrong, then some combination of errors has occured
+  if (input.size() != width + ibytes) {
+    return false;
+  }
+  unsigned char pbyte = 0;
+  for (unsigned char c : input) {
+    pbyte ^= c;
+  }
+  if (pbyte != 0) {
+    return false;
+  }
+  return true;
+}
+
 // Decode a FASTA file potentially containing IDS and erasure errors using RAID
 // concepts.
 // Preconditions:
@@ -129,20 +147,14 @@ void encode(std::vector<unsigned char> &input, int width, int height) {
 // The same w and h were used for the encoding of this FASTA file
 std::vector<unsigned char> decode(std::string filename, int width, int height) {
   // Array that will contain the reconstructed RAID array
-  std::vector<std::vector<unsigned char>> arr(
-      height + 1, std::vector<unsigned char>(width + 1, 0));
+  std::vector<std::vector<unsigned char>> res(height + 1);
   // Array that will store indices of rows with errors (erasure, IDS)
   std::vector<int> errors;
-  // Set that tracks what rows have been sampled
-  std::unordered_set<int> received;
   std::ifstream file(filename);
   std::string line;
   while (getline(file, line)) {
     // Might not need the first check, as there never should be empty lines
-    // Width + index bytes + 1 columns, and 4 nucelotides per byte
-    // If the length of the line is not correct, we know there is some error
-    if (!line.empty() && line[0] != '>' &&
-        line.length() == (width + ibytes + 1) * 4) {
+    if (!line.empty() && line[0] != '>') {
       // No errors so we extract the row
       std::vector<unsigned char> row;
       for (int i = 0; i < line.length(); i += 4) {
@@ -164,15 +176,18 @@ std::vector<unsigned char> decode(std::string filename, int width, int height) {
         }
         row.push_back(byte);
       }
-      // Extracting index
-      int index = 0;
-      for (int i = 0; i < ibytes; i++) {
-        index |= (row[i] << ((ibytes - 1 - i) * 8));
+      // Inner decode on the row checks if it contains an error
+      if (inner_decode(row, width)) {
+        // Extracting index
+        int index = 0;
+        for (int i = 0; i < ibytes; i++) {
+          index |= (row[i] << ((ibytes - 1 - i) * 8));
+        }
+        // Ideally would factor in consensus finding. Right now always overwrite
+        // with most recent read.
+        res[index] =
+            std::vector<unsigned char>(row.begin() + ibytes, row.end());
       }
-      received.insert(index);
-      // Ideally would factor in consensus finding. Right now always overwrite
-      // with most recent read.
-      arr[index] = std::vector<unsigned char>(row.begin() + ibytes, row.end());
     }
   }
   file.close();
