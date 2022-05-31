@@ -122,8 +122,8 @@ void encode(std::vector<unsigned char> &input, int width, int height) {
 }
 
 // Helper function for the decode function. Returns false if the length of the
-// input row is incorrect or it does not pass the parity check. Returns true
-// otherwise.
+// input row is incorrect or it does not pass the row-wise parity check. Returns
+// true otherwise.
 bool inner_decode(std::vector<unsigned char> &input, int width) {
   // If the length is wrong, then some combination of errors has occured
   if (input.size() != width + ibytes) {
@@ -139,12 +139,74 @@ bool inner_decode(std::vector<unsigned char> &input, int width) {
   return true;
 }
 
-// Decode a FASTA file potentially containing IDS and erasure errors using RAID
-// concepts.
-// Preconditions:
-// w and h are positive integers
-// The size of the input array is equal to w * h
-// The same w and h were used for the encoding of this FASTA file
+// Helper function for the decode function. Should take in an error containing
+// indices of rows with known errors, the constructed RAID array, as well as the
+// height and width as parameters.
+bool outer_decode(std::vector<std::vector<unsigned char>> &input,
+                  vector<int> &errors, int width, int height) {
+  // Seeing which indices were not received
+  for (int i = 0; i < height; i++) {
+    if (input[i].empty()) {
+      errors.push_back(i);
+    }
+  }
+  if (errors.size() > 1) {
+    // If there is more than one row with errors we cannot recover the data
+    return false;
+  } else if (errors.empty()) {
+    // If there are no errors from checking the row parity bytes, we will check
+    // the column bytes
+    for (int j = 0; j < width; j++) {
+      unsigned char pbyte = 0;
+      for (int i = 0; i < height; i++) {
+        pbyte ^= input[i][j];
+      }
+      // The column has an error, which we cannot correct
+      if (pbyte != 0) {
+        return false;
+      }
+    }
+    // We can only correct errors if there's exactly 1 row with incorrect parity
+  } else {
+    // Index of row with error
+    int wrong = errors.front();
+    input[wrong] = std::vector<unsigned char>(width);
+    for (int i = 0; i < width; i++) {
+      // The parity byte of the current corresponding column
+      unsigned char pbyte = 0;
+      for (int j = 0; j < height; j++) {
+        if (j != wrong) {
+          pbyte ^= input[j][i];
+        }
+      }
+      // Setting the corrected byte
+      input[wrong][i] = pbyte;
+    }
+  }
+  return true;
+}
+
+// Helper function for the decode function. Converts the constructed RAID array
+// back into a 1D vector
+std::vector<unsigned char>
+decode_file_system(std::vector<std::vector<unsigned char>> &input, int width,
+                   int height) {
+  // Array to store decoded data
+  std::vector<unsigned char> decoded(height * width);
+  // Parse the RAID array to get the original data
+  for (int i = 0; i < height; i++) {
+    for (int j = 0; j < width; j++) {
+      decoded[width * i + j] = arr[i][j];
+      // std::cout << +decoded[width * i + j] << " ";
+    }
+    // std::cout << std::endl;
+  }
+  return decoded;
+}
+// Decode a FASTA file potentially containing IDS and erasure errors using
+// RAID concepts. Preconditions: w and h are positive integers The size of
+// the input array is equal to w * h The same w and h were used for the
+// encoding of this FASTA file
 std::vector<unsigned char> decode(std::string filename, int width, int height) {
   // Array that will contain the reconstructed RAID array
   std::vector<std::vector<unsigned char>> res(height + 1);
@@ -191,67 +253,8 @@ std::vector<unsigned char> decode(std::string filename, int width, int height) {
     }
   }
   file.close();
-  // Seeing which indices were not received
-  for (int i = 0; i < height + 1; i++) {
-    if (!received.count(i)) {
-      errors.push_back(i);
-    }
-  }
-  // Iterate through the reconstructed RAID array while calculating parity for
-  // each row. We do not need to iterate through the appended parity byte row
-  // *Don't take out addresses before doing row-wise parity check
-  if (errors.empty()) {
-    for (int i = 0; i < height; i++) {
-      unsigned char pbyte = 0;
-      for (int j = 0; j < width + 1; j++) {
-        pbyte ^= arr[i][j]; // calculating parity
-      }
-      if (pbyte != 0) {
-        errors.push_back(i);
-      }
-    }
-  }
-  if (errors.size() > 1) {
-    // If there is more than one row with errors we cannot recover the data
+  if (!outer_decode(res, errors, width, height)) {
     return {};
-  } else if (errors.empty()) {
-    // If there are no errors from checking the row parity bytes, we will check
-    // the column bytes
-    for (int j = 0; j < width; j++) {
-      unsigned char pbyte = 0;
-      for (int i = 0; i < height + 1; i++) {
-        pbyte ^= arr[i][j];
-      }
-      // The column has an error, which we cannot correct
-      if (pbyte != 0) {
-        return {};
-      }
-    }
-    // We can only correct errors if there's exactly 1 row with incorrect parity
-  } else {
-    // Index of row with error
-    int wrong = errors.front();
-    for (int i = 0; i < width; i++) {
-      // The parity byte of the current corresponding column
-      unsigned char pbyte = 0;
-      for (int j = 0; j < height + 1; j++) {
-        if (j != wrong) {
-          pbyte ^= arr[j][i];
-        }
-      }
-      // Setting the corrected byte
-      arr[wrong][i] = pbyte;
-    }
   }
-  // Array to store decoded data
-  std::vector<unsigned char> decoded(height * width);
-  // Parse the RAID array to get the original data
-  for (int i = 0; i < height; i++) {
-    for (int j = 0; j < width; j++) {
-      decoded[width * i + j] = arr[i][j];
-      // std::cout << +decoded[width * i + j] << " ";
-    }
-    // std::cout << std::endl;
-  }
-  return decoded;
+  return decode_file_system(res, width, height);
 }
