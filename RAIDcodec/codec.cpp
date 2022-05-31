@@ -234,7 +234,9 @@ std::vector<unsigned char> decode(std::string filename, int width, int height) {
   for (int i = 0; i < height; i++) {
     for (int j = 0; j < width; j++) {
       decoded[width * i + j] = arr[i][j];
+      // std::cout << +decoded[width * i + j] << " ";
     }
+    // std::cout << std::endl;
   }
   return decoded;
 }

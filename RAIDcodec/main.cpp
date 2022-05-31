@@ -14,7 +14,7 @@ std::uniform_int_distribution<std::mt19937::result_type> dist1(1, 255);
 void test(int width, int height) {
   std::vector<unsigned char> orig(width * height);
   for (int i = 0; i < width * height; i++) {
-    orig[i] = dist1(rng);
+    orig[i] = i;
   }
   encode(orig, width, height);
   std::vector<unsigned char> decoded = decode("encoded.fasta", width, height);
