@@ -49,7 +49,7 @@ void outer_encode(std::vector<std::vector<unsigned char>> &input, int width,
   }
   for (int i = 0; i < ibytes; i++) {
     // Indexing the extra parity row
-    input[height][i] = ((height + 1) >> (8 * (ibytes - 1 - i))) & 255;
+    input[height][i] = ((height) >> (8 * (ibytes - 1 - i))) & 255;
   }
 }
 
@@ -126,7 +126,8 @@ void encode(std::vector<unsigned char> &input, int width, int height) {
 // true otherwise.
 bool inner_decode(std::vector<unsigned char> &input, int width) {
   // If the length is wrong, then some combination of errors has occured
-  if (input.size() != width + ibytes) {
+  // The original width + 3 indexing bytes + 1 parity byte
+  if (input.size() != width + ibytes + 1) {
     return false;
   }
   unsigned char pbyte = 0;
@@ -143,7 +144,7 @@ bool inner_decode(std::vector<unsigned char> &input, int width) {
 // indices of rows with known errors, the constructed RAID array, as well as the
 // height and width as parameters.
 bool outer_decode(std::vector<std::vector<unsigned char>> &input,
-                  vector<int> &errors, int width, int height) {
+                  std::vector<int> &errors, int width, int height) {
   // Seeing which indices were not received
   for (int i = 0; i < height; i++) {
     if (input[i].empty()) {
@@ -158,7 +159,7 @@ bool outer_decode(std::vector<std::vector<unsigned char>> &input,
     // the column bytes
     for (int j = 0; j < width; j++) {
       unsigned char pbyte = 0;
-      for (int i = 0; i < height; i++) {
+      for (int i = 0; i <= height; i++) {
         pbyte ^= input[i][j];
       }
       // The column has an error, which we cannot correct
@@ -174,7 +175,7 @@ bool outer_decode(std::vector<std::vector<unsigned char>> &input,
     for (int i = 0; i < width; i++) {
       // The parity byte of the current corresponding column
       unsigned char pbyte = 0;
-      for (int j = 0; j < height; j++) {
+      for (int j = 0; j <= height; j++) {
         if (j != wrong) {
           pbyte ^= input[j][i];
         }
@@ -196,7 +197,7 @@ decode_file_system(std::vector<std::vector<unsigned char>> &input, int width,
   // Parse the RAID array to get the original data
   for (int i = 0; i < height; i++) {
     for (int j = 0; j < width; j++) {
-      decoded[width * i + j] = arr[i][j];
+      decoded[width * i + j] = input[i][j];
       // std::cout << +decoded[width * i + j] << " ";
     }
     // std::cout << std::endl;
@@ -248,7 +249,7 @@ std::vector<unsigned char> decode(std::string filename, int width, int height) {
         // Ideally would factor in consensus finding. Right now always overwrite
         // with most recent read.
         res[index] =
-            std::vector<unsigned char>(row.begin() + ibytes, row.end());
+            std::vector<unsigned char>(row.begin() + ibytes, row.end() - 1);
       }
     }
   }
