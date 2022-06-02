@@ -1,10 +1,9 @@
 #pragma once
-#include <cstdint>
 #include <vector>
 // Remove the below includes later
 #include <fstream>
 #include <iostream>
-typedef uint8_t u8;
+typedef unsigned char u8;
 
 // I should refactor this code later if it is used, with a seperate header file
 // with declarations, as well as moving the testing code to a different source
@@ -29,7 +28,7 @@ public:
         u8 a = static_cast<u8>(i);
         u8 b = static_cast<u8>(j);
         u8 p = 0;
-        for (int k = 0; k < 8 && a && b; k++) {
+        for (int k = 0; k < 8 && a != 0 && b != 0; k++) {
           if (b & 1) {
             p ^= a;
           }
@@ -43,7 +42,12 @@ public:
           }
         }
         mul[i][j] = p;
-        mul[p][i] = j;
+        if (p == 0 && i == 1) {
+          std::cout << +j << std::endl;
+        }
+        if (p != 0 && i != 0) {
+          div[p][i - 1] = j;
+        }
       }
     }
   }
@@ -95,21 +99,22 @@ int main() {
   vector<u8> log(256);
   ifstream file("log.txt");
   int index, num;
-  while (cin >> index, cin >> num) {
+  while (file >> index, file >> num) {
     log[index] = num;
   }
   file.close();
   // Loading anti-logarithm table
   vector<u8> antilog(256);
+  antilog[255] = 0;
   file.open("antilog.txt");
-  while (cin >> index, cin >> num) {
+  while (file >> index, file >> num) {
     antilog[index] = num;
   }
   file.close();
   Galois::G256 field;
   for (int i = 0; i < 256; i++) {
     for (int j = 0; j < 256; j++) {
-      cout << "Test for indices" << i << " " << j << ": ";
+      cout << "Test for indices " << i << " " << j << ": ";
       u8 u = static_cast<u8>(i);
       u8 v = static_cast<u8>(j);
       Galois::Elem a(&field, u);
@@ -118,41 +123,43 @@ int main() {
       if ((a + b).val == (u ^ v) && (a - b).val == (u ^ v)) {
         cout << "Addition / Subtraction Passed" << endl;
       } else {
-        cout << (a + b).val << " " << (a - b).val << " " << (u ^ v) << endl;
+        cout << +(a + b).val << " " << +(a - b).val << " " << +(u ^ v) << endl;
         return -1;
       }
       // Multiplication
       bool mul = 1;
       if (u == 0 || v == 0) {
         if ((a * b).val != 0) {
+          cout << +(a * b).val << endl;
           mul = 0;
         }
       } else {
         // uint8_t will mod by 256 automatically
-        if ((a * b).val != antilog[log[i] + log[j]]) {
+        if ((a * b).val != antilog[(log[i] + log[j]) % 255]) {
           mul = 0;
         }
-        return -1;
       }
       if (mul) {
         cout << "Multiplication Passed" << endl;
       } else {
-        cout << (a * b).val << " " << antilog[log[i] + log[j]] << endl;
+        cout << +(a * b).val << " " << +antilog[(log[i] + log[j]) % 255]
+             << endl;
         return -1;
       }
       // Division
       bool div = 1;
       if (u == 0 && v != 0 && (a / b).val != 0) {
         div = 0;
-      } else if (v != 0) {
-        if ((a / b).val != antilog[log[i] - log[j]]) {
+      } else if (u != 0 && v != 0) {
+        if ((a / b).val != antilog[(log[i] - log[j] + 255) % 255]) {
           div = 0;
         }
       }
       if (div) {
         cout << "Division Passed" << endl;
       } else {
-        cout << (a / b).val << " " << antilog[log[i] - log[j]] << endl;
+        cout << +(a / b).val << " " << +antilog[(log[i] - log[j] + 255) % 255]
+             << endl;
         return -1;
       }
     }
