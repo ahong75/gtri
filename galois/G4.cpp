@@ -67,6 +67,9 @@ using namespace std;
 int main() {
   vector<vector<u8>> addtests = {
       {0, 1, 2, 3}, {1, 0, 3, 2}, {2, 3, 0, 1}, {3, 2, 1, 0}};
+  vector<vector<u8>> multests = {
+      {0, 0, 0, 0}, {0, 1, 2, 3}, {0, 2, 3, 1}, {0, 3, 1, 2}};
+  vector<vector<u8>> divtests = {{0, 0, 0}, {1, 3, 2}, {2, 1, 3}, {3, 2, 1}};
   Galois::G4 field;
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
@@ -77,32 +80,17 @@ int main() {
       } else {
         cout << "Failure on addtests with indices " << i << " " << j << endl;
       }
-    }
-  }
-
-  vector<vector<u8>> multests = {
-      {0, 0, 0, 0}, {0, 1, 2, 3}, {0, 2, 3, 1}, {0, 3, 1, 2}};
-  for (int i = 0; i < 4; i++) {
-    for (int j = 0; j < 4; j++) {
-      Galois::Elem first(&field, i);
-      Galois::Elem second(&field, j);
       if ((first * second).val == multests[i][j]) {
         cout << "Success" << endl;
       } else {
         cout << "Failure on multests with indices " << i << " " << j << endl;
       }
-    }
-  }
-
-  vector<vector<u8>> divtests = {{0, 0, 0}, {1, 3, 2}, {2, 1, 3}, {3, 2, 1}};
-  for (int i = 0; i < 4; i++) {
-    for (int j = 1; j < 4; j++) {
-      Galois::Elem first(&field, i);
-      Galois::Elem second(&field, j);
-      if ((first / second).val == divtests[i][j - 1]) {
-        cout << "Success" << endl;
-      } else {
-        cout << "Failure on divtests with indices " << i << " " << j << endl;
+      if (second.val != 0) {
+        if ((first / second).val == divtests[i][j - 1]) {
+          cout << "Success" << endl;
+        } else {
+          cout << "Failure on divtests with indices " << i << " " << j << endl;
+        }
       }
     }
   }

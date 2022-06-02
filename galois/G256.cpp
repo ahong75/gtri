@@ -1,8 +1,10 @@
 #pragma once
+#include <cstdint>
 #include <vector>
-// Remove the below line later
+// Remove the below includes later
+#include <fstream>
 #include <iostream>
-typedef unsigned char u8;
+typedef uint8_t u8;
 
 // I should refactor this code later if it is used, with a seperate header file
 // with declarations, as well as moving the testing code to a different source
@@ -12,18 +14,38 @@ namespace Galois {
 class G256 {
 public:
   // Addition / subtraction are identical and just the xor operation
-  std::vector<std::vector<u8>> add;
-  std::vector<std::vector<u8>> sub;
   std::vector<std::vector<u8>> mul;
   std::vector<std::vector<u8>> div;
   u8 mx;
   G256() {
-    // Hard-coded lookup tables for multiplication/division
     mx = 255;
-    // Create precalculated addition / subtraction / multiplication / division
-    // tables
-    mul = {{0, 0, 0, 0}, {0, 1, 2, 3}, {0, 2, 3, 1}, {0, 3, 1, 2}};
-    div = {{0, 0, 0}, {1, 3, 2}, {2, 1, 3}, {3, 2, 1}};
+    mul = std::vector<std::vector<u8>>(256, std::vector<u8>(256));
+    // 255 because you cannot divide by 0
+    div = std::vector<std::vector<u8>>(256, std::vector<u8>(255));
+    // Create precalculated multiplication / division tables
+    // Using ints because unsigned numbers will always be less than 256
+    for (int i = 0; i < 256; i++) {
+      for (int j = 0; j < 256; j++) {
+        u8 a = static_cast<u8>(i);
+        u8 b = static_cast<u8>(j);
+        u8 p = 0;
+        for (int k = 0; k < 8 && a && b; k++) {
+          if (b & 1) {
+            p ^= a;
+          }
+          b >>= 1;
+          // Potential for optimization here
+          bool carry = a & (1 << 7);
+          a <<= 1;
+          if (carry) {
+            // Binary literal suported by GCC, can change later if needed
+            a ^= 0b11011;
+          }
+        }
+        mul[i][j] = p;
+        mul[p][i] = j;
+      }
+    }
   }
 };
 
@@ -40,11 +62,13 @@ public:
   };
   Elem operator+(const Elem &e) {
     Elem res(this->field);
+    res.val = this->val ^ e.val;
     return res;
   }
 
   Elem operator-(const Elem &e) {
     Elem res(this->field);
+    res.val = this->val ^ e.val;
     return res;
   }
 
@@ -67,44 +91,69 @@ public:
 
 using namespace std;
 int main() {
-  vector<vector<u8>> addtests = {
-      {0, 1, 2, 3}, {1, 0, 3, 2}, {2, 3, 0, 1}, {3, 2, 1, 0}};
-  Galois::G4 field;
-  for (int i = 0; i < 4; i++) {
-    for (int j = 0; j < 4; j++) {
-      Galois::Elem first(&field, i);
-      Galois::Elem second(&field, j);
-      if ((first + second).val == addtests[i][j]) {
-        cout << "Success" << endl;
-      } else {
-        cout << "Failure on addtests with indices " << i << " " << j << endl;
-      }
-    }
+  // Loading logarithm table
+  vector<u8> log(256);
+  ifstream file("log.txt");
+  int index, num;
+  while (cin >> index, cin >> num) {
+    log[index] = num;
   }
-
-  vector<vector<u8>> multests = {
-      {0, 0, 0, 0}, {0, 1, 2, 3}, {0, 2, 3, 1}, {0, 3, 1, 2}};
-  for (int i = 0; i < 4; i++) {
-    for (int j = 0; j < 4; j++) {
-      Galois::Elem first(&field, i);
-      Galois::Elem second(&field, j);
-      if ((first * second).val == multests[i][j]) {
-        cout << "Success" << endl;
-      } else {
-        cout << "Failure on multests with indices " << i << " " << j << endl;
-      }
-    }
+  file.close();
+  // Loading anti-logarithm table
+  vector<u8> antilog(256);
+  file.open("antilog.txt");
+  while (cin >> index, cin >> num) {
+    antilog[index] = num;
   }
-
-  vector<vector<u8>> divtests = {{0, 0, 0}, {1, 3, 2}, {2, 1, 3}, {3, 2, 1}};
-  for (int i = 0; i < 4; i++) {
-    for (int j = 1; j < 4; j++) {
-      Galois::Elem first(&field, i);
-      Galois::Elem second(&field, j);
-      if ((first / second).val == divtests[i][j - 1]) {
-        cout << "Success" << endl;
+  file.close();
+  Galois::G256 field;
+  for (int i = 0; i < 256; i++) {
+    for (int j = 0; j < 256; j++) {
+      cout << "Test for indices" << i << " " << j << ": ";
+      u8 u = static_cast<u8>(i);
+      u8 v = static_cast<u8>(j);
+      Galois::Elem a(&field, u);
+      Galois::Elem b(&field, v);
+      // Addition / Subtraction
+      if ((a + b).val == (u ^ v) && (a - b).val == (u ^ v)) {
+        cout << "Addition / Subtraction Passed" << endl;
       } else {
-        cout << "Failure on divtests with indices " << i << " " << j << endl;
+        cout << (a + b).val << " " << (a - b).val << " " << (u ^ v) << endl;
+        return -1;
+      }
+      // Multiplication
+      bool mul = 1;
+      if (u == 0 || v == 0) {
+        if ((a * b).val != 0) {
+          mul = 0;
+        }
+      } else {
+        // uint8_t will mod by 256 automatically
+        if ((a * b).val != antilog[log[i] + log[j]]) {
+          mul = 0;
+        }
+        return -1;
+      }
+      if (mul) {
+        cout << "Multiplication Passed" << endl;
+      } else {
+        cout << (a * b).val << " " << antilog[log[i] + log[j]] << endl;
+        return -1;
+      }
+      // Division
+      bool div = 1;
+      if (u == 0 && v != 0 && (a / b).val != 0) {
+        div = 0;
+      } else if (v != 0) {
+        if ((a / b).val != antilog[log[i] - log[j]]) {
+          div = 0;
+        }
+      }
+      if (div) {
+        cout << "Division Passed" << endl;
+      } else {
+        cout << (a / b).val << " " << antilog[log[i] - log[j]] << endl;
+        return -1;
       }
     }
   }
