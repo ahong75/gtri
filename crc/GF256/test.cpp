@@ -45,20 +45,10 @@ int main() {
   Galois::G256 field;
   crc check({1, 0, 1, 1, 1}, 5, 20, &field);
   cout << "0 error tests" << endl;
-  for (int i = 0; i < 1000; i++) {
-    cout << "Test " << i << " ";
-    if (test1(check)) {
-      cout << "Success";
-    } else {
-      cout << "Failure";
-      return -1;
-    }
-    cout << endl;
-  }
-  cout << "1 error tests" << endl;
-  for (int i = 0; i < 1000; i++) {
-    cout << "Test " << i << endl;
-    if (test2(check)) {
+  for (int i = 0; i < 2000; i++) {
+    cout << "Test " << i + 1 << " ";
+    bool pass = i < 1000 ? test1(check) : test2(check);
+    if (pass) {
       cout << "Success";
     } else {
       cout << "Failure";

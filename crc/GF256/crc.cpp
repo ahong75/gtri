@@ -60,7 +60,7 @@ std::vector<u8> crc::divide(std::vector<Galois::Elem> &rem) {
             int curdegree = (poly.size() - i - 1) + qdegree;
             // We xor, because that is addition/subtraction in GF(256); Think
             // of normal polynomial long division
-            rem[rem.size() - curdegree - 1].val ^= poly[i].val;
+            rem[rem.size() - curdegree - 1].val ^= (poly[i] * quotient).val;
           }
         }
       }
@@ -69,7 +69,6 @@ std::vector<u8> crc::divide(std::vector<Galois::Elem> &rem) {
   std::vector<u8> res(poly_length - 1);
   for (int i = 0; i < poly_length - 1; i++) {
     res[i] = rem[rem.size() - poly_length + 1 + i].val;
-    std::cout << +res[i] << std::endl;
   }
   return res;
 }
@@ -108,6 +107,11 @@ bool crc::decode(std::vector<u8> &input) {
     rem.push_back(Galois::Elem(field, input[i]));
   }
   std::vector<u8> res = divide(rem);
+  // Removing the crc
+  for (int i = 0; i < poly_length - 1; i++) {
+    input.pop_back();
+  }
+  // Checking if the remainder of the division is 0
   for (u8 n : res) {
     if (n != 0) {
       return false;
