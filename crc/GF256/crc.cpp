@@ -39,6 +39,7 @@ std::vector<u8> crc::divide(std::vector<Galois::Elem> &rem) {
     // remainder unless proven otherwise
     divide = false;
     // Iterating through the current remainder
+    // This could probably be optimized
     for (int j = 0; j < rem.size(); j++) {
       // If the highest possible x degree term has not been found yet, check
       // if the current term is non zero and that its degree is greater than
