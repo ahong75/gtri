@@ -49,16 +49,22 @@ int main() {
   // of the time
   Galois::G256 field;
   crc check({1, 0, 1, 1, 1}, 5, 20, &field);
-  cout << "0 error tests" << endl;
-  for (int i = 0; i < 2000; i++) {
-    cout << "Test " << i + 1 << " ";
-    bool pass = i < 1000 ? test1(check) : test2(check);
-    if (pass) {
-      cout << "Success";
-    } else {
-      cout << "Failure";
-      return -1;
-    }
-    cout << endl;
+  random_device dev;
+  mt19937 rng(dev());
+  uniform_int_distribution<mt19937::result_type> dist(1, 255);
+  uniform_int_distribution<mt19937::result_type> dist2(0, 19);
+  vector<u8> orig(20);
+  for (int i = 0; i < 20; i++) {
+    orig[i] = dist(rng);
+  }
+  // for (int i = 0; i < 1000000; i++) {
+  //   vector<u8> arr = orig;
+  //   check.encode(arr);
+  // }
+  check.encode(orig);
+  vector<u8> arr = orig;
+  for (int i = 0; i < 10000000; i++) {
+    vector<u8> arr = orig;
+    !check.decode(arr);
   }
 }
