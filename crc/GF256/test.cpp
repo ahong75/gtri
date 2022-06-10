@@ -13,34 +13,24 @@ bool test1(crc &check) {
   vector<u8> arr(20);
   for (int i = 0; i < 20; i++) {
     arr[i] = dist(rng);
-    // cout << +arr[i] << " ";
   }
-  // cout << endl;
   check.encode(arr);
   return check.decode(arr);
 }
 
+random_device dev;
+mt19937 rng(dev());
+uniform_int_distribution<mt19937::result_type> dist(1, 255);
+uniform_int_distribution<mt19937::result_type> dist2(0, 23);
 // Tests if an error is detected with an error is applied to a single byte
 bool test2(crc &check) {
-  random_device dev;
-  mt19937 rng(dev());
-  uniform_int_distribution<mt19937::result_type> dist(1, 255);
-  uniform_int_distribution<mt19937::result_type> dist2(0, 23);
   vector<u8> arr(20);
   for (int i = 1; i < 20; i++) {
     arr[i] = dist(rng);
   }
   int rand_index = dist2(rng);
-  // arr[rand_index] = dist(rng);
-  // int orig = arr[rand_index];
   check.encode(arr);
   arr[rand_index] = (arr[rand_index] + dist(rng)) % 256;
-  // if (arr[rand_index] == orig) {
-  //   return true;
-  // }
-  // if (rand_index > 0) {
-  //   cout << rand_index << endl;
-  // }
   return !check.decode(arr);
 }
 
@@ -55,13 +45,10 @@ int main() {
   int error_count = 0;
   for (int i = 0; i < 1000000; i++) {
     bool pass = test2(check);
-    if (pass) {
-      // cout << "Success";
-    } else {
-      error_count++;
+    if (!pass) {
       // cout << "Test # " << i << " Failure" << endl;
-      // return -1;
+      error_count++;
     }
   }
-  // cout << "Error count: " << error_count << endl;
+  cout << "Error count: " << error_count << endl;
 }

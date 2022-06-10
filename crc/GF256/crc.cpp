@@ -18,8 +18,9 @@ crc::crc(std::vector<u8> input, int p, int d, Galois::G256 *f) {
   field = f;
 }
 
-std::vector<u8> crc::divide(std::vector<Galois::Elem> &rem) {
+void crc::divide(std::vector<Galois::Elem> &rem) {
   // degree of the highest order term in the poly
+  // Can actually calculate this in the crc constructor
   int pdegree = 0;
   for (int i = 0; i < poly.size(); i++) {
     if (poly[i].val != 0) {
@@ -61,17 +62,13 @@ std::vector<u8> crc::divide(std::vector<Galois::Elem> &rem) {
             int curdegree = (poly.size() - i - 1) + qdegree;
             // We xor, because that is addition/subtraction in GF(256); Think
             // of normal polynomial long division
-            rem[rem.size() - curdegree - 1] = rem[rem.size() - curdegree - 1] - (poly[i] * quotient);
+            rem[rem.size() - curdegree - 1] =
+                rem[rem.size() - curdegree - 1] - (poly[i] * quotient);
           }
         }
       }
     }
   }
-  std::vector<u8> res(poly_length - 1);
-  for (int i = 0; i < poly_length - 1; i++) {
-    res[i] = rem[rem.size() - poly_length + 1 + i].val;
-  }
-  return res;
 }
 
 void crc::encode(std::vector<u8> &input) {
@@ -92,29 +89,30 @@ void crc::encode(std::vector<u8> &input) {
   for (int i = 0; i < poly_length - 1; i++) {
     rem.push_back(Galois::Elem(field, 0));
   }
-  std::vector<u8> res = divide(rem);
-  for (u8 n : res) {
-    input.push_back(n);
+  divide(rem);
+  for (int i = data_length; i < data_length + poly_length - 1; i++) {
+    input.push_back(rem[i].val);
   }
 }
 bool crc::decode(std::vector<u8> &input) {
   // Encoded vector should have data bytes + poly_length - 1 crc bytes
   if (data_length + poly_length - 1 != input.size()) {
+    std::cout << input.size() << std::endl;
     throw std::invalid_argument(
-        "The length of the vector is the wrong size for crc encoding.");
+        "The length of the vector is the wrong size for crc decoding.");
   }
   std::vector<Galois::Elem> rem;
   for (int i = 0; i < input.size(); i++) {
     rem.push_back(Galois::Elem(field, input[i]));
   }
-  std::vector<u8> res = divide(rem);
+  divide(rem);
   // Removing the crc
   for (int i = 0; i < poly_length - 1; i++) {
     input.pop_back();
   }
   // Checking if the remainder of the division is 0
-  for (u8 n : res) {
-    if (n != 0) {
+  for (int i = data_length; i < data_length + poly_length - 1; i++) {
+    if (rem[i].val != 0) {
       return false;
     }
   }
