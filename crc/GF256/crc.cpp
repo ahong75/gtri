@@ -61,7 +61,7 @@ std::vector<u8> crc::divide(std::vector<Galois::Elem> &rem) {
             int curdegree = (poly.size() - i - 1) + qdegree;
             // We xor, because that is addition/subtraction in GF(256); Think
             // of normal polynomial long division
-            rem[rem.size() - curdegree - 1].val ^= (poly[i] * quotient).val;
+            rem[rem.size() - curdegree - 1] = rem[rem.size() - curdegree - 1] - (poly[i] * quotient);
           }
         }
       }

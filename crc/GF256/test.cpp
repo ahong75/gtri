@@ -13,9 +13,9 @@ bool test1(crc &check) {
   vector<u8> arr(20);
   for (int i = 0; i < 20; i++) {
     arr[i] = dist(rng);
-    cout << +arr[i] << " ";
+    // cout << +arr[i] << " ";
   }
-  cout << endl;
+  // cout << endl;
   check.encode(arr);
   return check.decode(arr);
 }
@@ -25,19 +25,22 @@ bool test2(crc &check) {
   random_device dev;
   mt19937 rng(dev());
   uniform_int_distribution<mt19937::result_type> dist(1, 255);
-  uniform_int_distribution<mt19937::result_type> dist2(0, 19);
+  uniform_int_distribution<mt19937::result_type> dist2(0, 23);
   vector<u8> arr(20);
   for (int i = 1; i < 20; i++) {
     arr[i] = dist(rng);
   }
   int rand_index = dist2(rng);
-  arr[rand_index] = dist(rng);
-  int orig = arr[rand_index];
+  // arr[rand_index] = dist(rng);
+  // int orig = arr[rand_index];
   check.encode(arr);
-  arr[rand_index] = dist(rng);
-  if (arr[rand_index] == orig) {
-    return true;
-  }
+  arr[rand_index] = (arr[rand_index] + dist(rng)) % 256;
+  // if (arr[rand_index] == orig) {
+  //   return true;
+  // }
+  // if (rand_index > 0) {
+  //   cout << rand_index << endl;
+  // }
   return !check.decode(arr);
 }
 
@@ -49,16 +52,16 @@ int main() {
   // of the time
   Galois::G256 field;
   crc check({1, 0, 1, 1, 1}, 5, 20, &field);
-  cout << "0 error tests" << endl;
-  for (int i = 0; i < 2000; i++) {
-    cout << "Test " << i + 1 << " ";
-    bool pass = i < 1000 ? test1(check) : test2(check);
+  int error_count = 0;
+  for (int i = 0; i < 1000000; i++) {
+    bool pass = test2(check);
     if (pass) {
-      cout << "Success";
+      // cout << "Success";
     } else {
-      cout << "Failure";
-      return -1;
+      error_count++;
+      // cout << "Test # " << i << " Failure" << endl;
+      // return -1;
     }
-    cout << endl;
   }
+  // cout << "Error count: " << error_count << endl;
 }
