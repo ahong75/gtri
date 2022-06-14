@@ -1,12 +1,13 @@
-#include "G256.hpp"
+// #include "G256.hpp"
+#include "G256log.hpp"
 #include <cstdio>
 #include <ctime>
 #include <fstream>
-#include <iostream>
 #include <iomanip>
+#include <iostream>
 #include <vector>
 
-const long long N = 3e9;
+const long long N = 1e9;
 using namespace std;
 int main() {
   Galois::G256 field;
@@ -19,8 +20,33 @@ int main() {
   clock_t start = clock();
 
   for (long long i = 0; i < N; i++) {
+    Galois::Elem c = a + b;
+  }
+
+  double time = double(clock() - start);
+
+  cout << "Addition/Subtraction" << fixed << setprecision(10)
+       << time / CLOCKS_PER_SEC << endl;
+
+  start = clock();
+
+  for (long long i = 0; i < N; i++) {
     Galois::Elem c = a * b;
   }
 
-  cout << fixed << setprecision(10) << double(clock() - start) / CLOCKS_PER_SEC << endl;
+  time = double(clock() - start);
+
+  cout << "Multiplication" << fixed << setprecision(10) << time / CLOCKS_PER_SEC
+       << endl;
+
+  start = clock();
+
+  for (long long i = 0; i < N; i++) {
+    Galois::Elem c = a / b;
+  }
+
+  time = double(clock() - start);
+
+  cout << "Division" << fixed << setprecision(10) << time / CLOCKS_PER_SEC
+       << endl;
 }

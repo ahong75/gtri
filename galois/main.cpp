@@ -1,10 +1,11 @@
-#include "G256.hpp"
+// #include "G256.hpp"
+#include "G256log.hpp"
 #include <fstream>
 #include <iostream>
 #include <vector>
 using namespace std;
 int main() {
-  // Loading logarithm table
+  // loading logarithm table
   vector<u8> log(256);
   ifstream file("log.txt");
   int index, num;
@@ -12,7 +13,7 @@ int main() {
     log[index] = num;
   }
   file.close();
-  // Loading anti-logarithm table
+  // loading anti-logarithm table
   vector<u8> antilog(256);
   antilog[255] = 0;
   file.open("antilog.txt");
@@ -23,7 +24,7 @@ int main() {
   Galois::G256 field;
   for (int i = 0; i < 256; i++) {
     for (int j = 0; j < 256; j++) {
-      cout << "Test for indices " << i << " " << j << ": ";
+      cout << "Test for indices " << i << " " << j << endl;
       u8 u = static_cast<u8>(i);
       u8 v = static_cast<u8>(j);
       Galois::Elem a(&field, u);
