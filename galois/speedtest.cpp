@@ -17,36 +17,47 @@ int main() {
   for (long long i = 0; i < N; i++) {
     Galois::Elem c = a * b;
   }
-  clock_t start = clock();
 
-  for (long long i = 0; i < N; i++) {
-    Galois::Elem c = a + b;
+  // Averaged over 5 trials
+  double total = 0;
+  for (int i = 0; i < 5; i++) {
+    clock_t start = clock();
+    for (long long i = 0; i < N; i++) {
+      Galois::Elem c = a + b;
+    }
+    double time = double(clock() - start);
+    total += time;
   }
-
-  double time = double(clock() - start);
-
+  total /= 5;
   cout << "Addition/Subtraction: " << fixed << setprecision(10)
-       << time / CLOCKS_PER_SEC << endl;
+       << total / CLOCKS_PER_SEC << endl;
 
-  start = clock();
-
-  for (long long i = 0; i < N; i++) {
-    Galois::Elem c = a * b;
+  // Averaged over 5 trials
+  total = 0;
+  for (int i = 0; i < 5; i++) {
+    clock_t start = clock();
+    for (long long i = 0; i < N; i++) {
+      Galois::Elem c = a * b;
+    }
+    double time = double(clock() - start);
+    total += time;
   }
 
-  time = double(clock() - start);
+  total /= 5;
+  cout << "Multiplication: " << fixed << setprecision(10)
+       << total / CLOCKS_PER_SEC << endl;
 
-  cout << "Multiplication: " << fixed << setprecision(10) << time / CLOCKS_PER_SEC
-       << endl;
-
-  start = clock();
-
-  for (long long i = 0; i < N; i++) {
-    Galois::Elem c = a / b;
+  // Averaged over 5 trials
+  total = 0;
+  for (int i = 0; i < 5; i++) {
+    clock_t start = clock();
+    for (long long i = 0; i < N; i++) {
+      Galois::Elem c = a / b;
+    }
+    double time = double(clock() - start);
+    total += time;
   }
-
-  time = double(clock() - start);
-
-  cout << "Division: " << fixed << setprecision(10) << time / CLOCKS_PER_SEC
+  total /= 5;
+  cout << "Division: " << fixed << setprecision(10) << total / CLOCKS_PER_SEC
        << endl;
 }
