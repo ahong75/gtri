@@ -25,7 +25,7 @@ int main() {
 
   double time = double(clock() - start);
 
-  cout << "Addition/Subtraction" << fixed << setprecision(10)
+  cout << "Addition/Subtraction: " << fixed << setprecision(10)
        << time / CLOCKS_PER_SEC << endl;
 
   start = clock();
@@ -36,7 +36,7 @@ int main() {
 
   time = double(clock() - start);
 
-  cout << "Multiplication" << fixed << setprecision(10) << time / CLOCKS_PER_SEC
+  cout << "Multiplication: " << fixed << setprecision(10) << time / CLOCKS_PER_SEC
        << endl;
 
   start = clock();
@@ -47,6 +47,6 @@ int main() {
 
   time = double(clock() - start);
 
-  cout << "Division" << fixed << setprecision(10) << time / CLOCKS_PER_SEC
+  cout << "Division: " << fixed << setprecision(10) << time / CLOCKS_PER_SEC
        << endl;
 }
