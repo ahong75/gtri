@@ -8,7 +8,7 @@ typedef unsigned char u8;
 
 rs::rs(int p, int d, Galois::G256 *f) {
   field = f;
-  data_length = 251;
+  data_length = d;
   poly_length = p;
   // The size of the generator polynomial vector is 3 because it is a degree 2
   // polynomial.
@@ -44,6 +44,18 @@ std::vector<Galois::Elem> rs::poly_mul(std::vector<Galois::Elem> a,
   }
   return res;
 }
+
+// Helper function for the decode function. Evaluates a polynomial expression at
+// x. Implemented using Horner's scheme:
+// https://en.wikipedia.org/wiki/Horner%27s_method
+Galois::Elem poly_eval(std::vector<Galois::Elem> poly, Galois::Elem x) {
+  Galois::Elem res = poly[0];
+  for (int i = 0; i < poly.size(); i++) {
+    res = (res * x) + poly[i];
+  }
+  return res;
+}
+
 void rs::mod(std::vector<Galois::Elem> &rem) {
   // degree of the highest order term in the poly
   // Can actually calculate this in the crc constructor
@@ -121,7 +133,7 @@ void rs::encode(std::vector<u8> &input) {
   }
 }
 bool rs::decode(std::vector<u8> &input) {
-  // Encoded vector should have data bytes + poly_length - 1 crc bytes
+  // Encoded vector should have data bytes + poly_length - 1 remainder bytes
   if (data_length + poly_length - 1 != input.size()) {
     std::cout << input.size() << std::endl;
     throw std::invalid_argument(
@@ -131,14 +143,12 @@ bool rs::decode(std::vector<u8> &input) {
   for (int i = 0; i < input.size(); i++) {
     rem.push_back(Galois::Elem(field, input[i]));
   }
-  mod(rem);
-  // Removing the crc
+  // Removing the remainder bytes
   for (int i = 0; i < poly_length - 1; i++) {
     input.pop_back();
   }
-  // Checking if the remainder of the division is 0
-  for (int i = data_length; i < data_length + poly_length - 1; i++) {
-    if (rem[i].val != 0) {
+  for (int i = 0; i < zeroes.size(); i++) {
+    if (poly_eval(rem, zeroes[i]).val != 0) {
       return false;
     }
   }
