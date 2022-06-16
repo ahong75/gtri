@@ -14,7 +14,7 @@ G256::G256() {
   div = std::vector<std::vector<u8>>(256, std::vector<u8>(255));
   // Create precalculated multiplication / division tables
   // Using ints because unsigned numbers will always be less than 256
-  // Rijndael's (AES) finite field
+  // Using Russian Peasant Multiplication algorithm
   // https://en.wikipedia.org/wiki/Finite_field_arithmetic#Multiplication
   for (int i = 0; i < 256; i++) {
     for (int j = 0; j < 256; j++) {
