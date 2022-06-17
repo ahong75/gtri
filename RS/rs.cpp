@@ -6,21 +6,9 @@
 #include <iostream>
 typedef unsigned char u8;
 
-rs::rs(int p, int d, Galois::G256 *f) {
-  field = f;
-  data_length = d;
-  poly_length = p;
-  // The size of the generator polynomial vector is 3 because it is a degree 2
-  // polynomial.
-  zeroes.push_back(Galois::Elem(field, 1));
-  zeroes.push_back(Galois::Elem(field, 2));
-  poly = gen_poly();
-  // We are hardcoding the result of (x - 2^0)(x - 2^1)(x - 2^2)(x -
-  // 2^3) where the coefficients are in GF(256)
-  // Data length should be 251 because the size of the remainder will be 4 bytes
-  // and the size of the data + the remainder should be 255
-}
-
+// Helper function for the constructor that creates a vector representing the
+// generator polynomial. Currently it is hardcoded for the polynomial (x - 1)(x
+// - 2)
 std::vector<Galois::Elem> rs::gen_poly() {
   std::vector<Galois::Elem> res;
   res.push_back(Galois::Elem(field, 1));
@@ -33,32 +21,38 @@ std::vector<Galois::Elem> rs::gen_poly() {
   return res;
 }
 
+rs::rs(int p, int d, Galois::G256 *f) {
+  field = f;
+  // The data length is currently assumed to be 253 and the poly length 3
+  data_length = d;
+  poly_length = p;
+  // The size of the generator polynomial vector is 3 because it is a degree 2
+  // polynomial.
+
+  // Hard coding the two zeroes in (x - a^0)(x - a^1). 2^0 = 1 and 2^1 = 2. If
+  // using a bigger gen poly later on, should remember that the powers of alpha
+  // should be calculated in GF(256)
+  zeroes.push_back(Galois::Elem(field, 1));
+  zeroes.push_back(Galois::Elem(field, 2));
+  poly = gen_poly();
+}
+
+// Helper function for polynomial multiplication with coefficients in GF(256)
 std::vector<Galois::Elem> rs::poly_mul(std::vector<Galois::Elem> a,
                                        std::vector<Galois::Elem> b) {
   std::vector<Galois::Elem> res(a.size() + b.size() - 1,
                                 Galois::Elem(field, 0));
   for (int i = 0; i < b.size(); i++) {
     for (int j = 0; j < a.size(); j++) {
-      res[i + j] = res[i + j] + (b[i] * a[j]);
+      res[i + j] = res[i + j] + (a[j] * b[i]);
     }
-  }
-  return res;
-}
-
-// Helper function for the decode function. Evaluates a polynomial expression at
-// x. Implemented using Horner's scheme:
-// https://en.wikipedia.org/wiki/Horner%27s_method
-Galois::Elem poly_eval(std::vector<Galois::Elem> poly, Galois::Elem x) {
-  Galois::Elem res = poly[0];
-  for (int i = 0; i < poly.size(); i++) {
-    res = (res * x) + poly[i];
   }
   return res;
 }
 
 void rs::mod(std::vector<Galois::Elem> &rem) {
   // degree of the highest order term in the poly
-  // Can actually calculate this in the crc constructor
+  // Can actually calculate this in the constructor
   int pdegree = 0;
   for (int i = 0; i < poly.size(); i++) {
     if (poly[i].val != 0) {
@@ -88,12 +82,12 @@ void rs::mod(std::vector<Galois::Elem> &rem) {
         divide = true;
         // Dividing the highest order term in the remainder by the highest
         // order term in the generator polynomial in GF(256)
-        quotient = rem[j] / poly[pdegree];
+        quotient = rem[j] / poly[0];
         qdegree = ddegree - pdegree;
         // With this operation, the highest term in the remainder will be
         // canceled out.
         rem[j].val = 0;
-        for (int i = poly.size() - pdegree; i < poly.size(); i++) {
+        for (int i = 1; i < poly.size(); i++) {
           if (poly[i].val != 0) {
             // Degree of product between quotient term and current generator
             // polynomial term
@@ -107,6 +101,10 @@ void rs::mod(std::vector<Galois::Elem> &rem) {
       }
     }
   }
+  for (int i = 0; i < rem.size(); i++) {
+    std::cout << +rem[i].val << " ";
+  }
+  std::cout << std::endl;
 }
 
 void rs::encode(std::vector<u8> &input) {
@@ -115,15 +113,15 @@ void rs::encode(std::vector<u8> &input) {
     throw std::invalid_argument(
         "The length of the vector is the wrong size for crc encoding.");
   }
-  // Vector representing the remainder of the polynomial divide, which is the
-  // crc itself
-  // Wrapping once at the begin and unwrapping at the end is better than
-  // constantly wrapping and unwrapping during the operations.
+  // Vector representing the polynomial with Galois element wrapping and
+  // appended zero bytes for where the remainder will go. Wrapping once at the
+  // begin and unwrapping at the end is better than constantly wrapping and
+  // unwrapping during the operations.
   std::vector<Galois::Elem> rem;
   for (int i = 0; i < data_length; i++) {
     rem.push_back(Galois::Elem(field, input[i]));
   }
-  // Pushing back the zeroed crc
+  // Pushing back the zeroed remainder
   for (int i = 0; i < poly_length - 1; i++) {
     rem.push_back(Galois::Elem(field, 0));
   }
@@ -132,6 +130,18 @@ void rs::encode(std::vector<u8> &input) {
     input.push_back(rem[i].val);
   }
 }
+
+// Helper function for the decode function. Evaluates a polynomial expression at
+// x. Implemented using Horner's scheme:
+// https://en.wikipedia.org/wiki/Horner%27s_method
+Galois::Elem poly_eval(std::vector<Galois::Elem> poly, Galois::Elem x) {
+  Galois::Elem res = poly[0];
+  for (int i = 1; i < poly.size(); i++) {
+    res = (res * x) + poly[i];
+  }
+  return res;
+}
+
 bool rs::decode(std::vector<u8> &input) {
   // Encoded vector should have data bytes + poly_length - 1 remainder bytes
   if (data_length + poly_length - 1 != input.size()) {
@@ -149,6 +159,7 @@ bool rs::decode(std::vector<u8> &input) {
   }
   for (int i = 0; i < zeroes.size(); i++) {
     if (poly_eval(rem, zeroes[i]).val != 0) {
+      std::cout << +poly_eval(rem, zeroes[i]).val << " ";
       return false;
     }
   }
