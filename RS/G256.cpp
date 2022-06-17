@@ -31,6 +31,8 @@ G256::G256() {
         a <<= 1;
         if (carry) {
           // Binary literal suported by GCC, can change later if needed
+          // Represents the primitive polynomial x^8 + x^4 + x^3 + x + 1
+          // The smallest primitive element is 3 (not 2)
           a ^= 0b11011;
         }
       }

@@ -33,7 +33,7 @@ rs::rs(int p, int d, Galois::G256 *f) {
   // using a bigger gen poly later on, should remember that the powers of alpha
   // should be calculated in GF(256)
   zeroes.push_back(Galois::Elem(field, 1));
-  zeroes.push_back(Galois::Elem(field, 2));
+  zeroes.push_back(Galois::Elem(field, 3));
   poly = gen_poly();
 }
 
@@ -101,10 +101,6 @@ void rs::mod(std::vector<Galois::Elem> &rem) {
       }
     }
   }
-  for (int i = 0; i < rem.size(); i++) {
-    std::cout << +rem[i].val << " ";
-  }
-  std::cout << std::endl;
 }
 
 void rs::encode(std::vector<u8> &input) {
@@ -159,7 +155,6 @@ bool rs::decode(std::vector<u8> &input) {
   }
   for (int i = 0; i < zeroes.size(); i++) {
     if (poly_eval(rem, zeroes[i]).val != 0) {
-      std::cout << +poly_eval(rem, zeroes[i]).val << " ";
       return false;
     }
   }

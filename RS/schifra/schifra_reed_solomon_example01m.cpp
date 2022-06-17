@@ -53,7 +53,7 @@ int main() {
   const schifra::galois::field field(
       field_descriptor, schifra::galois::primitive_polynomial_size06,
       schifra::galois::primitive_polynomial06);
-
+  10;
   schifra::galois::field_polynomial generator_polynomial(field);
 
   if (!schifra::make_sequential_root_generator_polynomial(
@@ -73,20 +73,31 @@ int main() {
   const encoder_t encoder(field, generator_polynomial);
   const decoder_t decoder(field, generator_polynomial_index);
 
-  std::string message =
-      "An expert is someone who knows more and more about less and "
-      "less until they know absolutely everything about nothing";
+  // std::string message = "An expert is someone who knows more and more about
+  // less and "
+  //                       "less until they know absolutely everything about
+  //                       nothing";
 
+  std::vector<unsigned char> message = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
   /* Pad message with nulls up until the code-word length */
-  message.resize(code_length, 0x00);
+  message.resize(code_length, 0x00 & field.mask());
 
-  std::cout << "Original Message:  [" << message << "]" << std::endl;
+  // std::cout << "Original Message:  [" << message << "]" << std::endl;
+  std::cout << "Original Message: ";
+  for (int i = 0; i < message.size(); i++) {
+    std::cout << +message[i] << " ";
+  }
+  std::cout << std::endl;
 
   /* Instantiate RS Block For Codec */
   schifra::reed_solomon::block<code_length, fec_length> block;
+  schifra::reed_solomon::block<code_length, fec_length> original_block;
 
+  schifra::reed_solomon::copy(&message[0], message.size(), block);
+
+  original_block = block;
   /* Transform message into Reed-Solomon encoded codeword */
-  if (!encoder.encode(message, block)) {
+  if (!encoder.encode(block)) {
     std::cout << "Error - Critical encoding failure! "
               << "Msg: " << block.error_as_string() << std::endl;
     return 1;
@@ -101,14 +112,15 @@ int main() {
     std::cout << "Error - Critical decoding failure! "
               << "Msg: " << block.error_as_string() << std::endl;
     return 1;
-  } else if (!schifra::is_block_equivelent(block, message)) {
+  } else if (!schifra::are_blocks_equivelent(block, original_block, true,
+                                             true)) {
     std::cout << "Error - Error correction failed!" << std::endl;
     return 1;
   }
 
-  block.data_to_string(message);
+  // block.data_to_string(message);
 
-  std::cout << "Corrected Message: [" << message << "]" << std::endl;
+  // std::cout << "Corrected Message: [" << message << "]" << std::endl;
 
   std::cout << "Encoder Parameters [" << encoder_t::trait::code_length << ","
             << encoder_t::trait::data_length << ","
