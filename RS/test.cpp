@@ -7,7 +7,7 @@ using namespace std;
 
 random_device dev;
 // Seeded with 1234
-mt19937 rng(12345);
+mt19937 rng(123456);
 uniform_int_distribution<mt19937::result_type> dist(1, 255);
 uniform_int_distribution<mt19937::result_type> dist2(0, 20);
 uniform_int_distribution<mt19937::result_type> dist3(1, 254);
@@ -37,7 +37,7 @@ bool test2(rs &check) {
 
 bool two_error_test(rs &check) {
   vector<u8> arr(253);
-  for (int i = 0; i < 20; i++) {
+  for (int i = 233; i < 253; i++) {
     arr[i] = dist(rng);
   }
   int rand_index_one = dist2(rng);
@@ -57,6 +57,46 @@ bool two_error_test(rs &check) {
     return false;
   }
   // return !check.decode(arr);
+}
+
+bool three_error_test(rs &check) {
+  vector<u8> arr(253);
+  for (int i = 0; i < 20; i++) {
+    arr[i] = dist(rng);
+  }
+  int rand_index_one = dist2(rng);
+  // int rand_index_two = (rand_index_one + dist3(rng)) % 255;
+  int rand_index_two = (rand_index_one + dist3(rng)) % 255;
+  int rand_index_three = (rand_index_two + dist3(rng)) % 255;
+  if (rand_index_one == rand_index_two || rand_index_one == rand_index_three || rand_index_two == rand_index_three) {
+    return true;
+  }
+  check.encode(arr);
+  arr[rand_index_one] = (arr[rand_index_one] + dist(rng)) % 256;
+  // arr[rand_index_two] = (arr[rand_index_two] + dist(rng)) % 256;
+  arr[rand_index_two] = (arr[rand_index_two] + dist(rng)) % 256;
+  arr[rand_index_three] = (arr[rand_index_three] + dist(rng)) % 256;
+  if (!check.decode(arr)) {
+    return true;
+  } else {
+    return false;
+  }
+  // return !check.decode(arr);
+}
+
+bool custom_test(rs &check) {
+  vector<u8> arr(253, 0);
+  for (int i = 233; i < 253; i++) {
+    arr[i] = i - 232;
+    // arr[i - 233] = i - 232;
+  }
+  check.encode(arr);
+  for (int i = 233; i < 255; i++) {
+    cout << unsigned(arr[i]) << " ";
+  }
+  cout << endl;
+  check.decode(arr);
+  return true;
 }
 int main() {
   // how to test

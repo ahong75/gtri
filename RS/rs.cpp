@@ -8,7 +8,7 @@ typedef unsigned char u8;
 
 // Helper function for the constructor that creates a vector representing the
 // generator polynomial. Currently it is hardcoded for the polynomial (x - 1)(x
-// - 2)
+// - 3)
 std::vector<Galois::Elem> rs::gen_poly() {
   std::vector<Galois::Elem> res;
   res.push_back(Galois::Elem(field, 1));
@@ -53,13 +53,13 @@ std::vector<Galois::Elem> rs::poly_mul(std::vector<Galois::Elem> a,
 void rs::mod(std::vector<Galois::Elem> &rem) {
   // degree of the highest order term in the poly
   // Can actually calculate this in the constructor
-  int pdegree = 0;
-  for (int i = 0; i < poly.size(); i++) {
-    if (poly[i].val != 0) {
-      pdegree = poly.size() - i - 1;
-      break;
-    }
-  }
+  int pdegree = 2;
+  // for (int i = 0; i < poly.size(); i++) {
+  //   if (poly[i].val != 0) {
+  //     pdegree = poly.size() - i - 1;
+  //     break;
+  //   }
+  // }
   // Boolean that tracks whether or not it is possible to divide the
   // remaining number by the dividend
   bool divide = true;
@@ -132,7 +132,10 @@ void rs::encode(std::vector<u8> &input) {
 // https://en.wikipedia.org/wiki/Horner%27s_method
 Galois::Elem poly_eval(std::vector<Galois::Elem> poly, Galois::Elem x) {
   Galois::Elem res = poly[0];
-  for (int i = 1; i < poly.size(); i++) {
+  // for (int i = 1; i < poly.size(); i++) {
+  //   res = (res * x) + poly[i];
+  // }
+  for (int i = 1; i < 22; i++) {
     res = (res * x) + poly[i];
   }
   return res;
