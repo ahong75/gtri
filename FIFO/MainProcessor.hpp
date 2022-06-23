@@ -6,6 +6,9 @@ typedef unsigned char u8;
 
 class MainProcessor {
   // 3D vector that stores all the data that we are trying to read
+  // First index -> which chunk
+  // Second index -> which column in that chunk
+  // Third index -> which byte in that column
   static std::vector<std::vector<std::vector<u8>>> chunks;
 
   // 2D vector used to see if some column has already been received.
@@ -45,7 +48,6 @@ class MainProcessor {
   void receive(Read read) {
     // I'm not sure if I'm allowed to have this kind of conditional.
     // Is is better to have this in process(), or perhaps even before, should I not even send invalid reads?
-    // I felt like this might relate to some parallel programming principles
     if (!read.valid) return;
     read_queue.push(read);
   }

@@ -1,6 +1,8 @@
 #include <vector> 
 #include "../RS/rs.hpp"
 typedef unsigned char u8;
+
+// Struct that acts as a wrapper to an oligo read 
 struct Read {
   // Is false if the inner_decode detected an error
   bool valid;
