@@ -22,17 +22,8 @@ class ParallelProcessor {
       return read;
     }
     // Last two bytes of the decoded array are the chunk index and column index respectively
-    int byte = input[decoder.data_length - 2];
-    
-    for (int i = 0; i < 8; i++) {
-      read.chunk_index += (1 << i) * ((byte >> i) & 1);
-    }
-
-    byte = input[decoder.data_length - 1];
-
-    for (int i = 0; i < 8; i++) {
-      read.col_index += (1 << i) * ((byte >> i) & 1);
-    }
+    read.chunk_index = static_cast<int>(input[decoder.data_length - 2]);
+    read.col_index = static_cast<int>(input[decoder.data_length - 1]);
     return read;
   }
 };
