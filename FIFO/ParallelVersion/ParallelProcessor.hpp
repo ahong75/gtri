@@ -1,3 +1,4 @@
+#pragma once
 #include <vector> 
 #include "../../RS/rs.hpp"
 typedef unsigned char u8;
@@ -11,6 +12,7 @@ struct Read {
   int col_index = 0;
 };
 class ParallelProcessor {
+  public:
   rs decoder;
   // Each parallel processor instance will need an RS code object
   ParallelProcessor(rs r) : decoder(r) {};

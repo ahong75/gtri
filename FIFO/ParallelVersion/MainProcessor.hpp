@@ -1,3 +1,4 @@
+#pragma once
 #include <queue>
 #include <vector>
 #include "ParallelProcessor.hpp"
@@ -6,6 +7,7 @@
 typedef unsigned char u8;
 
 class MainProcessor {
+  public:
   // 3D vector that stores all the data that we are trying to read
   // First index -> which chunk
   // Second index -> which column in that chunk
