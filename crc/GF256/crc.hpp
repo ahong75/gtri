@@ -16,7 +16,7 @@ public:
   int poly_length;
   crc(std::vector<u8> input, int p, int d, Galois::G256 *field);
 
-  void divide(std::vector<Galois::Elem> &rem);
+  void mod(std::vector<Galois::Elem> &rem);
   // Encode function that takes in a byte vector and calculates and appends the
   // CRC. Might want to change this to a static function later on when we're
   // just going to be using a single polynomial anyways.

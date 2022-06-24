@@ -60,7 +60,7 @@ int main() {
   crc check({1, 71, 3, 23, 57}, 5, 20, &field);
   int error_count = 0;
   for (int i = 0; i < 1000000; i++) {
-    if (!two_error_test(check)) {
+    if (!test1(check)) {
       cout << "Test " << i << " Failure" << endl;
       error_count++;
     }

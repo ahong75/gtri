@@ -63,8 +63,8 @@ int main() {
   // }
   check.encode(orig);
   vector<u8> arr = orig;
-  for (int i = 0; i < 10000000; i++) {
+  for (int i = 0; i < 1000000; i++) {
     vector<u8> arr = orig;
-    !check.decode(arr);
+    check.encode(arr);
   }
 }

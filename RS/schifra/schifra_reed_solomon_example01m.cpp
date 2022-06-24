@@ -53,7 +53,6 @@ int main() {
   const schifra::galois::field field(
       field_descriptor, schifra::galois::primitive_polynomial_size06,
       schifra::galois::primitive_polynomial06);
-  10;
   schifra::galois::field_polynomial generator_polynomial(field);
 
   if (!schifra::make_sequential_root_generator_polynomial(
@@ -80,7 +79,7 @@ int main() {
 
   std::vector<unsigned char> message = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
   /* Pad message with nulls up until the code-word length */
-  message.resize(code_length, 0x00 & field.mask());
+  message.resize(data_length, 0x00 & field.mask());
 
   // std::cout << "Original Message:  [" << message << "]" << std::endl;
   std::cout << "Original Message: ";
@@ -104,7 +103,7 @@ int main() {
   }
 
   /* Add errors at every 3rd location starting at position zero */
-  schifra::corrupt_message_all_errors00(block, 0, 3);
+  schifra::corrupt_message_all_errors_wth_mask(block, 0, field.mask(), 3);
 
   std::cout << "Corrupted Codeword: [" << block << "]" << std::endl;
 
@@ -118,9 +117,16 @@ int main() {
     return 1;
   }
 
-  // block.data_to_string(message);
-
+  std::string decoded(data_length, 0);
+  block.data_to_string(decoded);
+  std::cout << decoded.length() << std::endl;
   // std::cout << "Corrected Message: [" << message << "]" << std::endl;
+
+  std::cout << "Decoded Message: ";
+  for (int i = 0; i < decoded.length(); i++) {
+    std::cout << +decoded[i] << " ";
+  }
+  std::cout << std::endl;
 
   std::cout << "Encoder Parameters [" << encoder_t::trait::code_length << ","
             << encoder_t::trait::data_length << ","
