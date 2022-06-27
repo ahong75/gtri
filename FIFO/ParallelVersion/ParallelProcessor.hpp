@@ -17,6 +17,8 @@ class ParallelProcessor {
   // Each parallel processor instance will need an RS code object
   ParallelProcessor(rs r) : decoder(r) {};
 
+  // Change so you pass in a read by reference. That way you don't always have to 
+  // return a Read struct
   Read inner_decode(std::vector<u8> input) {
     // Do inner decode here
     // 1. Check for errors, 2. Parse column and chunk index. 3. Wrap into Read struct

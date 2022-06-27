@@ -2,7 +2,7 @@
 #include <queue>
 #include <vector>
 #include "ParallelProcessor.hpp"
-#include "concurrentqueue-1.0.3/blockingconcurrentqueue.h"
+#include "concurrentqueue.h"
 
 typedef unsigned char u8;
 
@@ -12,13 +12,14 @@ class MainProcessor {
   // First index -> which chunk
   // Second index -> which column in that chunk
   // Third index -> which byte in that column
-  static std::vector<std::vector<std::vector<u8>>> chunks;
+  std::vector<std::vector<std::vector<u8>>> chunks;
 
   // 2D vector used to see if some column has already been received.
-  static std::vector<std::vector<bool>> received;
+  std::vector<std::vector<bool>> received;
 
   // FIFO queue that stores received reads from parallel processors
-  moodycamel::BlockingConcurrentQueue<Read> read_queue;
+  // moodycamel::BlockingConcurrentQueue<Read> read_queue;
+  moodycamel::ConcurrentQueue<Read> read_queue;
 
   // Chunk width should be equivalent to the size of an outer codeword
   MainProcessor(int num_chunks, int chunk_width) {
@@ -34,15 +35,17 @@ class MainProcessor {
   // Processes the front element of read_queue if it contains at least 1 element
   void process() {
     Read read;
-    read_queue.wait_dequeue(read);
-    int chunk_index = read.chunk_index;
-    int col_index = read.col_index;
-    // Popping the chunk and column index
-    read.data.pop_back();
-    read.data.pop_back();
-    if (received[chunk_index][col_index]) return;
-    chunks[chunk_index][col_index] = read.data;
-    received[chunk_index][col_index] = 1;
+    // read_queue.wait_dequeue(read);
+    if (read_queue.try_dequeue(read)) {
+      int chunk_index = read.chunk_index;
+      int col_index = read.col_index;
+      // popping the chunk and column index
+      read.data.pop_back();
+      read.data.pop_back();
+      if (received[chunk_index][col_index]) return;
+      chunks[chunk_index][col_index] = read.data;
+      received[chunk_index][col_index] = 1;
+    }
   }
 
   // Receives a read from a parallel processor and pushes it into the queue
