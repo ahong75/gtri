@@ -46,6 +46,7 @@ class MainProcessor {
       chunks[chunk_index][col_index] = read.data;
       received[chunk_index][col_index] = 1;
     }
+    read_queue.try_dequeue(read);
   }
 
   // Receives a read from a parallel processor and pushes it into the queue
@@ -54,5 +55,16 @@ class MainProcessor {
     // Is is better to have this in process(), or perhaps even before, should I not even send invalid reads?
     if (!read.valid) return;
     read_queue.try_enqueue(read);
+  }
+
+  std::vector<std::vector<int>> get_erasures() {
+    std::vector<std::vector<int>> erasures;
+    for (int i = 0; i < received.size(); i++) {
+      erasures.push_back({});
+      for (int j = 0; j < received[i].size(); j++) {
+        if (!received[i][j]) erasures[i].push_back(j);
+      }
+    }
+    return erasures;
   }
 };

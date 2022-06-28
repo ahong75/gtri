@@ -39,6 +39,7 @@ int main() {
   moodycamel::ConcurrentQueue<Read> read_queue;
   vector<vector<unsigned char>> data(200, vector<unsigned char>(22));
   // I have no idea what to do to solve the I/O problem
+  cout << "Yes" << endl;
   atomic<int> j(0);
   atomic<int> k(0);
   #pragma omp parallel for
