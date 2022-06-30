@@ -42,4 +42,26 @@ class ParallelProcessor {
 
     return read;
   }
+
+  // bool inner_decode(std::vector<u8> input, Read &read) {
+  //   // Do inner decode here
+  //   // 1. Check for errors, 2. Parse column and chunk index. 3. Wrap into Read struct
+  //   if (!decoder.decode(input)) {
+  //     return false;
+  //   }
+  //   // Last two bytes of the decoded array store the chunk index and column index
+  //   int byte = input[decoder.data_length - 2];
+  //   
+  //   for (int i = 0; i < 8; i++) {
+  //     read.chunk_index += (1 << i) * ((byte >> i) & 1);
+  //   }
+
+  //   byte = input[decoder.data_length - 1];
+
+  //   for (int i = 0; i < 8; i++) {
+  //     read.col_index += (1 << i) * ((byte >> i) & 1);
+  //   }
+
+  //   return true;
+  // }
 };
