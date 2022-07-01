@@ -1,6 +1,6 @@
 #pragma once
 #include <vector> 
-#include "../../RS/rs.hpp"
+#include "InnerRS.hpp"
 typedef unsigned char u8;
 
 // Struct that acts as a wrapper to an oligo read 

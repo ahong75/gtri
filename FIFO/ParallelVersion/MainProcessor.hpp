@@ -26,9 +26,8 @@ class MainProcessor {
   // Waits for the queue to be filled with an element and processes it
   void process();
 
+  // Performs an inner decode on a given FASTA file in parallel
   std::vector<std::vector<std::vector<u8>>> inner_decode(std::string filename, rs &decoder);
-  // Receives a read from a parallel processor and pushes it into the queue
-  void receive(Read read);
 
   // Returns a vector of erasure lists corresponding to each chunk
   std::vector<std::vector<int>> get_erasures();

@@ -29,7 +29,7 @@ void MainProcessor::process() {
   }
 }
 
-// Performs an inner decoding on a given FASTA file in parallel. 
+// Performs an inner decode on a given FASTA file in parallel 
 std::vector<std::vector<std::vector<u8>>> MainProcessor::inner_decode(std::string filename, rs &decoder) {
   ParallelProcessor par_proc(decoder);
   std::ifstream file(filename);
@@ -50,6 +50,7 @@ std::vector<std::vector<std::vector<u8>>> MainProcessor::inner_decode(std::strin
       line_count++;
     }
   }
+  file.close();
   int count = 0;
   // Creating a team of threads
   #pragma omp parallel
@@ -68,21 +69,14 @@ std::vector<std::vector<std::vector<u8>>> MainProcessor::inner_decode(std::strin
     for (int i = 0; i < line_count; i++) {
       // This is where the DNA base class should come in
       std::vector<u8> cur_line = std::vector<u8>(line[i]);
-      Read read;
-      this->receive(par_proc.inner_decode(cur_line));
+      this->read_queue.try_enqueue(par_proc.inner_decode(cur_line));
+      // Read read;
       // if (par_proc.inner_decode(cur_line, read)) {
       //   this->receive(read);
       // }
     }
   }
   return this->chunks;
-}
-
-void MainProcessor::receive(Read read) {
-  // I'm not sure if I'm allowed to have this kind of conditional.
-  // Is is better to have this in process(), or perhaps even before, should I not even send invalid reads?
-  if (!read.valid) return;
-  read_queue.try_enqueue(read);
 }
 
 std::vector<std::vector<int>> MainProcessor::get_erasures() {
