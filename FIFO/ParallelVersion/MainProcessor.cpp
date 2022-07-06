@@ -68,7 +68,7 @@ std::vector<std::vector<std::vector<u8>>> MainProcessor::inner_decode(std::strin
       // The rest of the threads act as parallel processors and decode the lines of the file
       // in parallel
       // This is where the DNA base class should come in
-      std::vector<u8> cur_line = std::vector<u8>(line[i]);
+      std::vector<u8> cur_line = std::vector<u8>(buffer[i]);
       // Later want to make use of the boolean this function call returns
       this->read_queue.enqueue(par_proc.inner_decode(cur_line));
     }

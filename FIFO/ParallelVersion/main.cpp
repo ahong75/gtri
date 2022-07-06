@@ -12,16 +12,13 @@ int main() {
   rs check(3, 20, &field);
   MainProcessor main_proc(10, 20);
   vector<vector<vector<unsigned char>>> chunks = main_proc.inner_decode("encoded.fasta", check);
-  // for (int i = 0; i < chunks.size(); i++) {
-  //   for (int j = 0; j < chunks[i].size(); j++) {
-  //     for (int k = 0; k < chunks[i][j].size(); k++) {
-  //       cout << +chunks[i][j][k] << " ";
-  //     }
-  //     cout << endl;
-  //   }
-  //   cout << endl;
-  // }
-  // cout << endl;
+  for (int i = 0; i < chunks.size(); i++) {
+    for (int j = 0; j < chunks[i].size(); j++) {
+      for (int k = 0; k < chunks[i][j].size(); k++) {
+        cout << +chunks[i][j][k] << " ";
+      }
+    }
+  }
   // moodycamel::ConcurrentQueue<Read> read_queue;
   // vector<vector<unsigned char>> data(200, vector<unsigned char>(22));
   // // I have no idea what to do to solve the I/O problem
