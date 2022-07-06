@@ -1,9 +1,11 @@
 #include "MainProcessor.hpp"
 #include <omp.h>
 #include <fstream>
+#include <iostream>
 
 // Chunk width should be equivalent to the size of an outer codeword
-MainProcessor::MainProcessor(int num_chunks, int chunk_width) {
+MainProcessor::MainProcessor(int num_chunks, int chunk_width, int inner_word_size) : 
+  read_queue(num_chunks * chunk_width), inner_word_size(inner_word_size) {
   // Resizing arrays to fit input parameters
   chunks.resize(num_chunks);
   received.resize(num_chunks);
@@ -32,8 +34,23 @@ void MainProcessor::process() {
 }
 
 bool MainProcessor::inner_encode(std::string filename, rs &encoder, std::vector<std::vector<std::vector<u8>>> &chunks) {
-  
+  // Outputting to fasta file. ios::trunc clears the file before writing to it
+  std::ofstream output(filename, std::ios::out | std::ios::trunc);
+  for (int i = 0; i < chunks.size(); i++) {
+    for (int j = 0; j < chunks[i].size(); j++) {
+      std::vector<u8> cur_line = chunks[i][j];
+      // I'm assuming that the given array is already indexed
+      encoder.encode(cur_line);
+      // This is where the DNABase class comes in
+      std::string s = cur_line;
+      output << '>' << j << std::endl;
+      output << s << std::endl;
+    }
+  }
+  output.close();
+  return true;
 }
+
 // Performs an inner decode on a given FASTA file in parallel 
 std::vector<std::vector<std::vector<u8>>> MainProcessor::inner_decode(std::string filename, rs &decoder) {
   ParallelProcessor par_proc(decoder);

@@ -7,6 +7,7 @@ typedef unsigned char u8;
 
 class MainProcessor {
   public:
+  int inner_word_size;
   // 3D vector that stores all the data that we are trying to read
   // First index -> which chunk
   // Second index -> which column in that chunk
@@ -21,13 +22,13 @@ class MainProcessor {
   moodycamel::BlockingConcurrentQueue<Read> read_queue;
 
   // Chunk width should be equivalent to the size of an outer codeword
-  MainProcessor(int num_chunks, int chunk_width);
+  MainProcessor(int num_chunks, int chunk_width, int inner_word_size);
 
   // Waits for the queue to be filled with an element and processes it
   void process();
 
   // Performs an inner encode on a given chunks vector
-  bool MainProcessor::inner_encode(std::string filename, rs &encoder, std::vector<std::vector<std::vector<u8>>> &chunks);
+  bool inner_encode(std::string filename, rs &encoder, std::vector<std::vector<std::vector<u8>>> &chunks);
 
   // Performs an inner decode on a given FASTA file in parallel
   std::vector<std::vector<std::vector<u8>>> inner_decode(std::string filename, rs &decoder);

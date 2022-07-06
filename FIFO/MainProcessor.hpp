@@ -1,5 +1,6 @@
 #include <queue>
 #include <vector>
+#include <string>
 #include "ParallelProcessor.hpp"
 
 typedef unsigned char u8;
@@ -20,7 +21,7 @@ class MainProcessor {
   // Chunk width should be equivalent to the size of an outer codeword
   MainProcessor(int num_chunks, int chunk_width) {
     // Resizing arrays to fit input parameters
-    chunks.resize(num_chunks);
+    this->chunks.resize(num_chunks);
     received.resize(num_chunks);
     for (int i = 0; i < num_chunks; i++) {
       chunks[i].resize(chunk_width);
@@ -28,6 +29,7 @@ class MainProcessor {
     }
   }
 
+  std::vector<std::vector<std::vector<u8>>> inner_decode(std::string filename, rs &decoder);
   // Processes the front element of read_queue if it contains at least 1 element
   void process() {
     if (!read_queue.empty()) {
