@@ -1,10 +1,9 @@
 #include "MainProcessor.hpp"
 #include <omp.h>
 #include <fstream>
-#include <iostream>
 
 // Chunk width should be equivalent to the size of an outer codeword
-MainProcessor::MainProcessor(int num_chunks, int chunk_width) : read_queue(num_chunks * chunk_width) {
+MainProcessor::MainProcessor(int num_chunks, int chunk_width) {
   // Resizing arrays to fit input parameters
   chunks.resize(num_chunks);
   received.resize(num_chunks);
@@ -12,10 +11,11 @@ MainProcessor::MainProcessor(int num_chunks, int chunk_width) : read_queue(num_c
     chunks[i].resize(chunk_width);
     received[i].resize(chunk_width);
   }
-  
 }
 
 // Waits for the queue to be filled and processes it
+// Note: consider chaning this function so that it only waits for a certain amount of time
+// This is so we don't wait infinitely for an element that was never pushed to the queue in the first place
 void MainProcessor::process() {
   Read read;
   read_queue.wait_dequeue(read);
@@ -31,6 +31,9 @@ void MainProcessor::process() {
   }
 }
 
+bool MainProcessor::inner_encode(std::string filename, rs &encoder, std::vector<std::vector<std::vector<u8>>> &chunks) {
+  
+}
 // Performs an inner decode on a given FASTA file in parallel 
 std::vector<std::vector<std::vector<u8>>> MainProcessor::inner_decode(std::string filename, rs &decoder) {
   ParallelProcessor par_proc(decoder);
@@ -53,8 +56,8 @@ std::vector<std::vector<std::vector<u8>>> MainProcessor::inner_decode(std::strin
     }
   }
   file.close();
-  int count = 0;
-  // Creating a team of threads
+  // Creating a team of threads (same as the # of cores in the processor)
+  // Testing: Limit # of cores and see computing time scaling
   #pragma omp parallel for
   for (int i = -1; i < line_count; i++) {
     // One thread (the "master" thread) is assigned to act as the main processor
@@ -70,58 +73,10 @@ std::vector<std::vector<std::vector<u8>>> MainProcessor::inner_decode(std::strin
       // This is where the DNA base class should come in
       std::vector<u8> cur_line = std::vector<u8>(line[i]);
       // Later want to make use of the boolean this function call returns
+      // Might lose line if try_enqueue fails (throw warning?)
       this->read_queue.enqueue(par_proc.inner_decode(cur_line));
     }
   }
-  // #pragma omp parallel
-  // {
-  //   #pragma omp task
-  //   for (int i = 0; i < line_count; i++) {
-  //     this->process();
-  //     std::cout << i << std::endl;
-  //   }
-
-  //   #pragma omp for
-  //   for (int i = 0; i < line_count; i++) {
-  //     // std::cout << i << std::endl;
-  //     // this is where the dna base class should come in
-  //     std::vector<u8> cur_line = std::vector<u8>(line[i]);
-  //     if (!this->read_queue.try_enqueue(par_proc.inner_decode(cur_line))) {
-  //       std::cout << "failed" << std::endl;
-  //     }
-  //     // read read;
-  //     // if (par_proc.inner_decode(cur_line, read)) {
-  //     //   this->receive(read);
-  //     // }
-  //   }
-  // }
-  // // Creating a team of threads
-  // #pragma omp single
-  // {
-  //   
-  //   int num_threads = omp_get_num_threads();
-  //   // One thread (the "master" thread) is assigned to act as the main processor
-  //   // This thread dequeues from the concurrent queue and reconstructs the chunks arrayt
-  //   #pragma omp master
-  //   {
-  //     for (int i = 0; i < line_count; i++) {
-  //       this->process();
-  //     }
-  //   }
-  //   // The rest of the threads act as parallel processors and decode the lines of the file
-  //   // in parallel
-  //   #pragma omp parallel for num_threads(num_threads - 1)
-  //   for (int i = 0; i < line_count; i++) {
-  //     std::cout << i << std::endl;
-  //     // This is where the DNA base class should come in
-  //     std::vector<u8> cur_line = std::vector<u8>(line[i]);
-  //     this->read_queue.try_enqueue(par_proc.inner_decode(cur_line));
-  //     // Read read;
-  //     // if (par_proc.inner_decode(cur_line, read)) {
-  //     //   this->receive(read);
-  //     // }
-  //   }
-  // }
   return this->chunks;
 }
 

@@ -26,6 +26,9 @@ class MainProcessor {
   // Waits for the queue to be filled with an element and processes it
   void process();
 
+  // Performs an inner encode on a given chunks vector
+  bool MainProcessor::inner_encode(std::string filename, rs &encoder, std::vector<std::vector<std::vector<u8>>> &chunks);
+
   // Performs an inner decode on a given FASTA file in parallel
   std::vector<std::vector<std::vector<u8>>> inner_decode(std::string filename, rs &decoder);
 
