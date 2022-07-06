@@ -6,35 +6,22 @@
 
 using namespace std;
 
-Read inner_decode(rs &decoder, std::vector<u8> input) {
-  // Do inner decode here
-  // 1. Check for errors, 2. Parse column and chunk index. 3. Wrap into Read struct
-  Read read;
-  if (!decoder.decode(input)) {
-    read.valid = false;
-    return read;
-  }
-  // Last two bytes of the decoded array store the chunk index and column index
-  int byte = input[decoder.data_length - 2];
-  
-  for (int i = 0; i < 8; i++) {
-    read.chunk_index += (1 << i) * ((byte >> i) & 1);
-  }
-
-  byte = input[decoder.data_length - 1];
-
-  for (int i = 0; i < 8; i++) {
-    read.col_index += (1 << i) * ((byte >> i) & 1);
-  }
-
-  return read;
-}
 
 int main() {
-  int num_reads = 200;
   Galois::G256 field;
   rs check(3, 20, &field);
   MainProcessor main_proc(10, 20);
+  vector<vector<vector<unsigned char>>> chunks = main_proc.inner_decode("encoded.fasta", check);
+  // for (int i = 0; i < chunks.size(); i++) {
+  //   for (int j = 0; j < chunks[i].size(); j++) {
+  //     for (int k = 0; k < chunks[i][j].size(); k++) {
+  //       cout << +chunks[i][j][k] << " ";
+  //     }
+  //     cout << endl;
+  //   }
+  //   cout << endl;
+  // }
+  // cout << endl;
   // moodycamel::ConcurrentQueue<Read> read_queue;
   // vector<vector<unsigned char>> data(200, vector<unsigned char>(22));
   // // I have no idea what to do to solve the I/O problem
